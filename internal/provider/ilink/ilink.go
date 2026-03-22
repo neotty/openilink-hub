@@ -10,6 +10,8 @@ import (
 
 	ilink "github.com/openilink/openilink-sdk-go"
 	"github.com/openilink/openilink-hub/internal/provider"
+	"github.com/youthlin/silk"
+	"bytes"
 )
 
 func init() {
@@ -55,7 +57,9 @@ func (p *Provider) Start(ctx context.Context, opts provider.StartOptions) error 
 	}
 	p.creds = creds
 
-	clientOpts := []ilink.Option{}
+	clientOpts := []ilink.Option{
+		ilink.WithSILKDecoder(decodeSILK),
+	}
 	if creds.BaseURL != "" {
 		clientOpts = append(clientOpts, ilink.WithBaseURL(creds.BaseURL))
 	}
@@ -156,6 +160,17 @@ func (p *Provider) GetConfig(ctx context.Context, recipient, contextToken string
 
 func (p *Provider) DownloadMedia(ctx context.Context, encryptQueryParam, aesKey string) ([]byte, error) {
 	return p.client.DownloadFile(ctx, encryptQueryParam, aesKey)
+}
+
+func (p *Provider) DownloadVoice(ctx context.Context, encryptQueryParam, aesKey string, _ int) ([]byte, error) {
+	return p.client.DownloadVoice(ctx, &ilink.CDNMedia{
+		EncryptQueryParam: encryptQueryParam,
+		AESKey:            aesKey,
+	})
+}
+
+func decodeSILK(data []byte, sampleRate int) ([]byte, error) {
+	return silk.Decode(bytes.NewReader(data), silk.WithSampleRate(sampleRate))
 }
 
 func convertInbound(msg ilink.WeixinMessage) provider.InboundMessage {

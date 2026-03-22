@@ -62,6 +62,11 @@ func (p *Provider) DownloadMedia(_ context.Context, _, _ string) ([]byte, error)
 	return []byte("mock-media-data"), nil
 }
 
+func (p *Provider) DownloadVoice(_ context.Context, _, _ string, _ int) ([]byte, error) {
+	// Return a minimal WAV header for testing
+	return []byte("RIFF\x00\x00\x00\x00WAVEfmt mock-wav-data"), nil
+}
+
 func (p *Provider) GetConfig(_ context.Context, _, _ string) (*provider.BotConfig, error) {
 	return &provider.BotConfig{TypingTicket: "mock-ticket"}, nil
 }

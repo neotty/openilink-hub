@@ -15,6 +15,7 @@ type Provider interface {
 	SendTyping(ctx context.Context, recipient, ticket string, typing bool) error
 	GetConfig(ctx context.Context, recipient, contextToken string) (*BotConfig, error)
 	DownloadMedia(ctx context.Context, encryptQueryParam, aesKey string) ([]byte, error)
+	DownloadVoice(ctx context.Context, encryptQueryParam, aesKey string, sampleRate int) ([]byte, error)
 	Status() string
 }
 

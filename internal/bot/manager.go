@@ -283,8 +283,18 @@ func (m *Manager) processMedia(inst *Instance, msg *provider.InboundMessage) {
 		}
 
 		if m.store != nil {
-			// Download and store to MinIO
-			data, err := inst.Provider.DownloadMedia(ctx, item.Media.EncryptQueryParam, item.Media.AESKey)
+			// Download media — voice gets SILK→WAV conversion
+			var data []byte
+			var err error
+			if item.Type == "voice" {
+				sampleRate := 24000
+				if item.Media.PlayTime > 0 {
+					sampleRate = 24000 // default
+				}
+				data, err = inst.Provider.DownloadVoice(ctx, item.Media.EncryptQueryParam, item.Media.AESKey, sampleRate)
+			} else {
+				data, err = inst.Provider.DownloadMedia(ctx, item.Media.EncryptQueryParam, item.Media.AESKey)
+			}
 			if err != nil {
 				slog.Error("media download failed", "bot", inst.DBID, "type", item.Type, "err", err)
 				continue
@@ -323,7 +333,7 @@ func mediaExt(itemType string) string {
 	case "image":
 		return ".jpg"
 	case "voice":
-		return ".silk"
+		return ".wav"
 	case "video":
 		return ".mp4"
 	default:
@@ -336,7 +346,7 @@ func mediaContentType(itemType string) string {
 	case "image":
 		return "image/jpeg"
 	case "voice":
-		return "audio/silk"
+		return "audio/wav"
 	case "video":
 		return "video/mp4"
 	case "file":
