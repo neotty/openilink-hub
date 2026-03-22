@@ -240,7 +240,7 @@ func (m *Manager) onInbound(inst *Instance, msg provider.InboundMessage) {
 			Content:  content,
 		}
 		for _, s := range m.sinks {
-			s.Handle(d)
+			go s.Handle(d)
 		}
 	}
 }

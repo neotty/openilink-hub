@@ -26,7 +26,7 @@ func (s *AI) Handle(d Delivery) {
 	if !d.Channel.AIConfig.Enabled || d.MsgType != "text" || d.Content == "" {
 		return
 	}
-	go s.reply(d)
+	s.reply(d)
 }
 
 func (s *AI) reply(d Delivery) {
