@@ -89,7 +89,11 @@ export function BotDetailPage() {
   const [sendError, setSendError] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string>("");
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   async function loadBot() {
     const bots = await api.listBots();
@@ -104,16 +108,48 @@ export function BotDetailPage() {
 
   async function loadMessages() {
     if (!id) return;
-    const data = await api.messages(id, 200);
-    setMessages((data || []).reverse());
+    const res = await api.messages(id, 30);
+    setMessages((res.messages || []).reverse());
+    setNextCursor(res.next_cursor || "");
+    setHasMore(res.has_more);
+  }
+
+  async function loadOlder() {
+    if (!id || !nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    const scrollEl = scrollRef.current;
+    const prevHeight = scrollEl?.scrollHeight || 0;
+    try {
+      const res = await api.messages(id, 30, nextCursor);
+      const older = (res.messages || []).reverse();
+      setMessages((prev) => [...older, ...prev]);
+      setNextCursor(res.next_cursor || "");
+      setHasMore(res.has_more);
+      // Restore scroll position after prepending
+      requestAnimationFrame(() => {
+        if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight - prevHeight;
+      });
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   useEffect(() => { loadBot(); loadChannels(); loadMessages(); }, [id]);
   useEffect(() => {
     requestAnimationFrame(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }));
-  }, [messages]);
+  }, [messages.length]);
   useEffect(() => {
-    const t = setInterval(loadMessages, 5000);
+    // Poll for new messages only (don't reload all)
+    const t = setInterval(async () => {
+      if (!id) return;
+      const res = await api.messages(id, 30);
+      const fresh = (res.messages || []).reverse();
+      setMessages((prev) => {
+        // Merge: keep optimistic (negative ids), replace rest with fresh
+        const optimistic = prev.filter((m) => m.id < 0);
+        return [...fresh, ...optimistic];
+      });
+    }, 5000);
     return () => clearInterval(t);
   }, [id]);
 
@@ -236,7 +272,16 @@ export function BotDetailPage() {
 
       {tab === "chat" ? (
         <div className="flex-1 flex flex-col overflow-hidden mt-3 rounded-xl border">
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+            {hasMore && (
+              <div className="text-center py-2">
+                <button
+                  onClick={loadOlder}
+                  disabled={loadingMore}
+                  className="text-xs text-muted-foreground hover:text-primary cursor-pointer"
+                >{loadingMore ? "加载中..." : "加载更早消息"}</button>
+              </div>
+            )}
             {messages.map((m) => {
               const isIn = m.direction === "inbound";
               const isSending = m.payload?._sending;

@@ -655,7 +655,7 @@ func TestMessages(t *testing.T) {
 	botObj := env.createBotForUser("Bot1")
 
 	// No messages yet
-	code, msgs := env.getList(fmt.Sprintf("/api/bots/%s/messages", botObj.ID))
+	code, result := env.get(fmt.Sprintf("/api/bots/%s/messages", botObj.ID))
 	assertCode(t, "empty messages", code, 200)
 
 	// Save some messages
@@ -667,10 +667,14 @@ func TestMessages(t *testing.T) {
 		})
 	}
 
-	code, msgs = env.getList(fmt.Sprintf("/api/bots/%s/messages", botObj.ID))
+	code, result = env.get(fmt.Sprintf("/api/bots/%s/messages", botObj.ID))
 	assertCode(t, "list messages", code, 200)
+	msgs := result["messages"].([]any)
 	if len(msgs) != 3 {
 		t.Errorf("want 3 messages, got %d", len(msgs))
+	}
+	if result["has_more"] != false {
+		t.Errorf("has_more should be false")
 	}
 }
 

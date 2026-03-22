@@ -57,7 +57,10 @@ export const api = {
   stats: () => request<any>("/api/bots/stats"),
 
   // Messages (under bots)
-  messages: (botId: string, limit = 50) => request<any[]>(`/api/bots/${botId}/messages?limit=${limit}`),
+  messages: (botId: string, limit = 30, cursor?: string) =>
+    request<{ messages: any[]; next_cursor: string; has_more: boolean }>(
+      `/api/bots/${botId}/messages?limit=${limit}${cursor ? "&cursor=" + cursor : ""}`
+    ),
 
   // Admin: system config
   getOAuthConfig: () => request<Record<string, any>>("/api/admin/config/oauth"),
