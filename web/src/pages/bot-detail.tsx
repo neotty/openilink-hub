@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Send, Cable, Copy, Check, Plus, Trash2, RotateCw, Radio, X } from "lucide-react";
+import { ArrowLeft, Send, Cable, Copy, Check, Plus, Trash2, RotateCw, Radio, X, Bot, Settings2 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
@@ -281,9 +281,11 @@ function ChannelRow({ channel, onRefresh }: { channel: any; onRefresh: () => voi
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedWs, setCopiedWs] = useState(false);
   const [showLive, setShowLive] = useState(false);
+  const [showAI, setShowAI] = useState(false);
 
   const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${wsProto}//${location.host}/api/ws?key=${channel.api_key}`;
+  const aiEnabled = channel.ai_config?.enabled;
 
   function copyKey() {
     navigator.clipboard.writeText(channel.api_key);
@@ -305,9 +307,17 @@ function ChannelRow({ channel, onRefresh }: { channel: any; onRefresh: () => voi
           {channel.handle && (
             <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">@{channel.handle}</span>
           )}
+          {aiEnabled && (
+            <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+              <Bot className="w-2.5 h-2.5" /> AI
+            </span>
+          )}
         </div>
         <div className="flex gap-1 shrink-0">
-          <Button variant={showLive ? "default" : "ghost"} size="sm" onClick={() => setShowLive(!showLive)}>
+          <Button variant={showAI ? "default" : "ghost"} size="sm" onClick={() => setShowAI(!showAI)} title="AI 配置">
+            <Bot className="w-3.5 h-3.5" />
+          </Button>
+          <Button variant={showLive ? "default" : "ghost"} size="sm" onClick={() => setShowLive(!showLive)} title="实时监听">
             <Radio className="w-3.5 h-3.5" />
           </Button>
           <Button variant="ghost" size="sm" onClick={async () => { if (confirm("重新生成 Key？")) { await api.rotateKey(channel.id); onRefresh(); } }}>
@@ -322,7 +332,112 @@ function ChannelRow({ channel, onRefresh }: { channel: any; onRefresh: () => voi
       <CopyRow label="API Key" value={channel.api_key} copied={copiedKey} onCopy={copyKey} />
       <CopyRow label="WebSocket" value={wsUrl} copied={copiedWs} onCopy={copyWs} />
 
+      {showAI && <AIConfigPanel channelId={channel.id} config={channel.ai_config} onSaved={onRefresh} />}
       {showLive && <LivePanel wsUrl={wsUrl} onClose={() => setShowLive(false)} />}
+    </div>
+  );
+}
+
+function AIConfigPanel({ channelId, config, onSaved }: { channelId: string; config: any; onSaved: () => void }) {
+  const [enabled, setEnabled] = useState(config?.enabled || false);
+  const [baseUrl, setBaseUrl] = useState(config?.base_url || "");
+  const [apiKey, setApiKey] = useState(config?.api_key || "");
+  const [model, setModel] = useState(config?.model || "");
+  const [systemPrompt, setSystemPrompt] = useState(config?.system_prompt || "");
+  const [maxHistory, setMaxHistory] = useState(config?.max_history || 20);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    try {
+      await api.updateChannel(channelId, {
+        ai_config: {
+          enabled,
+          base_url: baseUrl,
+          api_key: apiKey,
+          model: model || "gpt-4o-mini",
+          system_prompt: systemPrompt,
+          max_history: maxHistory || 20,
+        },
+      });
+      onSaved();
+    } catch (err: any) {
+      setError(err.message);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="border rounded-lg bg-background p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium flex items-center gap-1.5">
+          <Bot className="w-3.5 h-3.5" /> AI 自动回复
+        </span>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <span className="text-[10px] text-muted-foreground">{enabled ? "已开启" : "已关闭"}</span>
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+            className="w-3.5 h-3.5 accent-primary"
+          />
+        </label>
+      </div>
+
+      {enabled && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              placeholder="API Base URL（留空用 OpenAI 默认）"
+              value={baseUrl}
+              onChange={(e) => setBaseUrl(e.target.value)}
+              className="h-7 text-[11px] font-mono col-span-2"
+            />
+            <Input
+              type="password"
+              placeholder="API Key"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              className="h-7 text-[11px] font-mono"
+            />
+            <Input
+              placeholder="模型（默认 gpt-4o-mini）"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              className="h-7 text-[11px] font-mono"
+            />
+          </div>
+          <textarea
+            placeholder="系统提示词（System Prompt）"
+            value={systemPrompt}
+            onChange={(e) => setSystemPrompt(e.target.value)}
+            rows={3}
+            className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-[11px] placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:border-ring resize-none"
+          />
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] text-muted-foreground shrink-0">上下文消息数</label>
+            <Input
+              type="number"
+              value={maxHistory}
+              onChange={(e) => setMaxHistory(parseInt(e.target.value) || 20)}
+              className="h-7 text-[11px] w-20"
+              min={1}
+              max={100}
+            />
+            <div className="flex-1" />
+            {error && <span className="text-[10px] text-destructive">{error}</span>}
+            <Button size="sm" className="h-7" onClick={handleSave} disabled={saving || !apiKey}>
+              {saving ? "..." : "保存"}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            兼容 OpenAI / Azure / Anthropic 代理 / Ollama 等任何 OpenAI 兼容接口。
+            收到文本消息时自动调用 AI 生成回复并发送给用户。
+          </p>
+        </div>
+      )}
     </div>
   );
 }
