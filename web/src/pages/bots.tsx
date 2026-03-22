@@ -132,11 +132,18 @@ function BotCard({ bot, channelCount, onRefresh }: { bot: any; channelCount: num
       <div>
         <p className="font-medium text-sm">{bot.name}</p>
         <p className="text-xs text-muted-foreground font-mono mt-0.5">{bot.extra?.bot_id}</p>
-        <p className="text-xs text-muted-foreground mt-1">{channelCount} 个通道</p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-muted-foreground">{channelCount} 个通道</span>
+          {bot.status === "session_expired" && (
+            <span className="text-[10px] text-destructive">会话过期，请删除后重新绑定</span>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2">
-        <Badge variant={statusVariant[bot.status] || "outline"}>{bot.status}</Badge>
-        {bot.status !== "connected" && (
+        <Badge variant={statusVariant[bot.status] || "outline"}>
+          {bot.status === "session_expired" ? "已过期" : bot.status}
+        </Badge>
+        {bot.status !== "connected" && bot.status !== "session_expired" && (
           <Button variant="ghost" size="sm" onClick={handleReconnect}>
             <RefreshCw className="w-3.5 h-3.5" />
           </Button>
