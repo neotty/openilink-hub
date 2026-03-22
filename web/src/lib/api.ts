@@ -40,9 +40,9 @@ export const api = {
   rotateKey: (id: string) => request<{ api_key: string }>(`/api/channels/${id}/rotate-key`, { method: "POST" }),
 
   // OAuth accounts
-  oauthAccounts: () => request<any[]>("/api/auth/oauth/accounts"),
+  oauthAccounts: () => request<any[]>("/api/auth/linked-accounts"),
   unlinkOAuth: (provider: string) =>
-    request(`/api/auth/oauth/accounts/${provider}`, { method: "DELETE" }),
+    request(`/api/auth/linked-accounts/${provider}`, { method: "DELETE" }),
 
   // Stats
   stats: () => request<any>("/api/stats"),

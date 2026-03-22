@@ -52,7 +52,7 @@ export function SettingsPage() {
   }
 
   function handleBind(provider: string) {
-    window.location.href = `/api/auth/oauth/${provider}/bind`;
+    window.location.href = `/api/auth/linked-accounts/${provider}/bind`;
   }
 
   if (!user) return null;

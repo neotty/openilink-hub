@@ -68,9 +68,9 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("PUT /api/auth/password", s.handleChangePassword)
 
 	// OAuth account binding (authenticated)
-	protected.HandleFunc("GET /api/auth/oauth/accounts", s.handleOAuthAccounts)
-	protected.HandleFunc("GET /api/auth/oauth/{provider}/bind", s.handleOAuthBind)
-	protected.HandleFunc("DELETE /api/auth/oauth/accounts/{provider}", s.handleOAuthUnbind)
+	protected.HandleFunc("GET /api/auth/linked-accounts", s.handleOAuthAccounts)
+	protected.HandleFunc("GET /api/auth/linked-accounts/{provider}/bind", s.handleOAuthBind)
+	protected.HandleFunc("DELETE /api/auth/linked-accounts/{provider}", s.handleOAuthUnbind)
 
 	// Bots
 	protected.HandleFunc("GET /api/bots", s.handleListBots)
