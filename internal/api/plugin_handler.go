@@ -94,6 +94,7 @@ func (s *Server) handleSubmitPlugin(w http.ResponseWriter, r *http.Request) {
 		MatchTypes:     meta.Match,
 		ConnectDomains: meta.Connect,
 		GrantPerms:     strings.Join(meta.Grant, ","),
+		Changelog:      meta.Changelog,
 		GithubURL:      githubURL,
 		CommitHash:     commitHash,
 		Script:         script,
@@ -319,6 +320,41 @@ func (s *Server) handleInstallPluginToChannel(w http.ResponseWriter, r *http.Req
 	})
 }
 
+// GET /api/webhook-plugins/{id}/versions — list all versions of this plugin (by name)
+func (s *Server) handlePluginVersions(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	plugin, err := s.DB.GetPlugin(id)
+	if err != nil {
+		jsonError(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	versions, err := s.DB.ListPluginVersions(plugin.Namespace, plugin.Name)
+	if err != nil {
+		jsonError(w, "query failed", http.StatusInternalServerError)
+		return
+	}
+
+	type versionResp struct {
+		ID        string `json:"id"`
+		Version   string `json:"version"`
+		Status    string `json:"status"`
+		Changelog string `json:"changelog,omitempty"`
+		CommitHash string `json:"commit_hash,omitempty"`
+		CreatedAt int64  `json:"created_at"`
+	}
+	result := make([]versionResp, len(versions))
+	for i, v := range versions {
+		result[i] = versionResp{
+			ID: v.ID, Version: v.Version, Status: v.Status,
+			Changelog: v.Changelog, CommitHash: v.CommitHash, CreatedAt: v.CreatedAt,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
 // POST /api/webhook-plugins/debug/request
 // Executes onRequest phase only, returns modified request for frontend to send.
 func (s *Server) handleDebugRequest(w http.ResponseWriter, r *http.Request) {
@@ -433,6 +469,7 @@ type pluginMeta struct {
 	Match       string   // comma-separated msg types or "*"
 	Connect     string   // comma-separated domains or "*"
 	Grant       []string // "reply", "skip"
+	Changelog   string
 	Config      []database.ConfigField
 }
 
@@ -491,6 +528,8 @@ func parsePluginMeta(script string) pluginMeta {
 					meta.Grant = append(meta.Grant, g)
 				}
 			}
+		case "changelog":
+			meta.Changelog = val
 		case "config":
 			parts := strings.SplitN(val, " ", 3)
 			if len(parts) >= 2 {

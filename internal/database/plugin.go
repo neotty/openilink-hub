@@ -27,6 +27,7 @@ type Plugin struct {
 	RejectReason string          `json:"reject_reason,omitempty"`
 	SubmittedBy  string          `json:"submitted_by"`
 	ReviewedBy   string          `json:"reviewed_by,omitempty"`
+	Changelog    string          `json:"changelog,omitempty"`
 	InstallCount int             `json:"install_count"`
 	CreatedAt    int64           `json:"created_at"`
 	UpdatedAt    int64           `json:"updated_at"`
@@ -47,7 +48,8 @@ const pluginSelectCols = `p.id, p.name, p.description, p.author, p.version,
 	p.namespace, p.icon, p.license, p.homepage,
 	p.match_types, p.connect_domains, p.grant_perms,
 	p.github_url, p.commit_hash, p.script, p.config_schema,
-	p.status, p.reject_reason, p.submitted_by, p.reviewed_by, p.install_count,
+	p.status, p.reject_reason, p.submitted_by, p.reviewed_by,
+	p.changelog, p.install_count,
 	EXTRACT(EPOCH FROM p.created_at)::BIGINT, EXTRACT(EPOCH FROM p.updated_at)::BIGINT,
 	COALESCE(su.username, ''), COALESCE(ru.username, '')`
 
@@ -61,7 +63,8 @@ func scanPlugin(scanner interface{ Scan(...any) error }) (*Plugin, error) {
 		&p.Namespace, &p.Icon, &p.License, &p.Homepage,
 		&p.MatchTypes, &p.ConnectDomains, &p.GrantPerms,
 		&p.GithubURL, &p.CommitHash, &p.Script, &p.ConfigSchema,
-		&p.Status, &p.RejectReason, &p.SubmittedBy, &p.ReviewedBy, &p.InstallCount,
+		&p.Status, &p.RejectReason, &p.SubmittedBy, &p.ReviewedBy,
+		&p.Changelog, &p.InstallCount,
 		&p.CreatedAt, &p.UpdatedAt,
 		&p.SubmitterName, &p.ReviewerName)
 	if err != nil {
@@ -81,12 +84,12 @@ func (db *DB) CreatePlugin(p *Plugin) (*Plugin, error) {
 	_, err := db.Exec(`INSERT INTO plugins
 		(id, name, description, author, version, namespace, icon, license, homepage,
 		 match_types, connect_domains, grant_perms,
-		 github_url, commit_hash, script, config_schema, status, submitted_by)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'pending',$17)`,
+		 github_url, commit_hash, script, config_schema, changelog, status, submitted_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'pending',$18)`,
 		p.ID, p.Name, p.Description, p.Author, p.Version,
 		p.Namespace, p.Icon, p.License, p.Homepage,
 		p.MatchTypes, p.ConnectDomains, p.GrantPerms,
-		p.GithubURL, p.CommitHash, p.Script, p.ConfigSchema, p.SubmittedBy)
+		p.GithubURL, p.CommitHash, p.Script, p.ConfigSchema, p.Changelog, p.SubmittedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -116,12 +119,12 @@ func (db *DB) UpdatePlugin(id string, p *Plugin) error {
 	_, err := db.Exec(`UPDATE plugins SET
 		description=$1, author=$2, version=$3, namespace=$4, icon=$5, license=$6, homepage=$7,
 		match_types=$8, connect_domains=$9, grant_perms=$10,
-		github_url=$11, commit_hash=$12, script=$13, config_schema=$14,
+		github_url=$11, commit_hash=$12, script=$13, config_schema=$14, changelog=$15,
 		status='pending', reject_reason='', reviewed_by='', updated_at=NOW()
-		WHERE id=$15`,
+		WHERE id=$16`,
 		p.Description, p.Author, p.Version, p.Namespace, p.Icon, p.License, p.Homepage,
 		p.MatchTypes, p.ConnectDomains, p.GrantPerms,
-		p.GithubURL, p.CommitHash, p.Script, p.ConfigSchema, id)
+		p.GithubURL, p.CommitHash, p.Script, p.ConfigSchema, p.Changelog, id)
 	return err
 }
 

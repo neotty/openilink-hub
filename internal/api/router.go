@@ -65,6 +65,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/webhook-plugins", s.handleListPlugins)
 	mux.HandleFunc("GET /api/webhook-plugins/{id}", s.handleGetPlugin)
 	mux.HandleFunc("GET /api/webhook-plugins/skill.md", handlePluginSkill)
+	mux.HandleFunc("GET /api/webhook-plugins/{id}/versions", s.handlePluginVersions)
 
 	// --- Media proxy (serves MinIO files through Hub) ---
 	mux.HandleFunc("GET /api/v1/media/", s.handleMediaProxy)

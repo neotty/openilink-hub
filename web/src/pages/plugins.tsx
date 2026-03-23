@@ -161,6 +161,15 @@ function PluginCard({ plugin, onRefresh, isAdmin, isLoggedIn, mode }: {
 }) {
   const [detail, setDetail] = useState<any>(null);
   const [showScript, setShowScript] = useState(false);
+  const [versions, setVersions] = useState<any[] | null>(null);
+  const [showVersions, setShowVersions] = useState(false);
+
+  async function toggleVersions() {
+    if (!showVersions && !versions) {
+      try { setVersions(await api.pluginVersions(plugin.id) || []); } catch { setVersions([]); }
+    }
+    setShowVersions(!showVersions);
+  }
 
   async function handleInstall() {
     const data = await api.installPlugin(plugin.id);
@@ -235,6 +244,9 @@ function PluginCard({ plugin, onRefresh, isAdmin, isLoggedIn, mode }: {
           {plugin.reject_reason && <p className="text-[10px] text-destructive mt-0.5">拒绝原因：{plugin.reject_reason}</p>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={toggleVersions}>
+            {showVersions ? "收起" : "版本"}
+          </Button>
           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={toggleScript}>
             {showScript ? "收起" : "源码"}
           </Button>
@@ -264,6 +276,24 @@ function PluginCard({ plugin, onRefresh, isAdmin, isLoggedIn, mode }: {
       {config.length > 0 && (
         <div className="text-[10px] text-muted-foreground">
           配置项：{config.map((c: any) => `${c.name} (${c.description || c.type})`).join("、")}
+        </div>
+      )}
+
+      {showVersions && versions && (
+        <div className="space-y-1">
+          <p className="text-[10px] font-medium">发版历史</p>
+          {versions.map((v) => (
+            <div key={v.id} className="flex items-center gap-2 text-[10px] p-1.5 rounded border bg-background">
+              <span className={`font-mono font-medium ${v.id === plugin.id ? "text-primary" : ""}`}>v{v.version}</span>
+              <Badge variant={v.status === "approved" ? "default" : v.status === "rejected" ? "destructive" : "outline"} className="text-[10px]">
+                {v.status === "approved" ? "✓" : v.status === "rejected" ? "✕" : "⏳"}
+              </Badge>
+              {v.changelog && <span className="text-muted-foreground flex-1 truncate">{v.changelog}</span>}
+              {v.commit_hash && <span className="font-mono text-muted-foreground">{v.commit_hash.slice(0, 7)}</span>}
+              <span className="text-muted-foreground">{new Date(v.created_at * 1000).toLocaleDateString()}</span>
+            </div>
+          ))}
+          {versions.length === 0 && <p className="text-[10px] text-muted-foreground">暂无历史版本</p>}
         </div>
       )}
 

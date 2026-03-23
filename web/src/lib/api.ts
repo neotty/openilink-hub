@@ -93,6 +93,7 @@ export const api = {
   getPlugin: (id: string) => request<any>(`/api/webhook-plugins/${id}`),
   submitPlugin: (data: { github_url?: string; script?: string }) => request<any>("/api/webhook-plugins/submit", { method: "POST", body: JSON.stringify(data) }),
   installPlugin: (id: string) => request<any>(`/api/webhook-plugins/${id}/install`, { method: "POST" }),
+  pluginVersions: (id: string) => request<any[]>(`/api/webhook-plugins/${id}/versions`),
   debugRequest: (data: { script: string; webhook_url?: string; mock_message?: any }) =>
     request<any>("/api/webhook-plugins/debug/request", { method: "POST", body: JSON.stringify(data) }),
   debugResponse: (data: { script: string; mock_message?: any; response: any }) =>
