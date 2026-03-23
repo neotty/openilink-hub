@@ -140,6 +140,9 @@ func (db *DB) UpdateUserStatus(id, status string) error {
 }
 
 func (db *DB) DeleteUser(id string) error {
+	db.Exec("DELETE FROM oauth_accounts WHERE user_id = $1", id)
+	db.Exec("DELETE FROM sessions WHERE user_id = $1", id)
+	db.Exec("DELETE FROM credentials WHERE user_id = $1", id)
 	_, err := db.Exec("DELETE FROM users WHERE id = $1", id)
 	return err
 }
