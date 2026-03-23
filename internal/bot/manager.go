@@ -32,6 +32,8 @@ func parseMentions(text string) []string {
 	return handles
 }
 
+const maxConcurrentDownloads = 5
+
 // Manager manages all active bot instances.
 type Manager struct {
 	mu        sync.RWMutex
@@ -39,8 +41,9 @@ type Manager struct {
 	db        *database.DB
 	hub       *relay.Hub
 	sinks     []sink.Sink
-	store     *storage.Storage // optional, for media files
-	baseURL   string           // Hub origin for proxy URLs
+	store     *storage.Storage    // optional, for media files
+	baseURL   string              // Hub origin for proxy URLs
+	dlSem     chan struct{}        // semaphore for concurrent media downloads
 }
 
 func NewManager(db *database.DB, hub *relay.Hub, sinks []sink.Sink, store *storage.Storage, baseURL string) *Manager {
@@ -51,6 +54,7 @@ func NewManager(db *database.DB, hub *relay.Hub, sinks []sink.Sink, store *stora
 		sinks:     sinks,
 		store:     store,
 		baseURL:   baseURL,
+		dlSem:     make(chan struct{}, maxConcurrentDownloads),
 	}
 }
 
@@ -102,11 +106,15 @@ func (m *Manager) StartBot(ctx context.Context, bot *database.Bot) error {
 			m.onInbound(inst, msg)
 		},
 		OnStatus: func(status string) {
-			_ = m.db.UpdateBotStatus(bot.ID, status)
+			if err := m.db.UpdateBotStatus(bot.ID, status); err != nil {
+				slog.Error("update bot status failed", "bot", bot.ID, "status", status, "err", err)
+			}
 			m.onStatusChange(inst, status)
 		},
 		OnSyncUpdate: func(state json.RawMessage) {
-			_ = m.db.UpdateBotSyncState(bot.ID, state)
+			if err := m.db.UpdateBotSyncState(bot.ID, state); err != nil {
+				slog.Error("update sync state failed", "bot", bot.ID, "err", err)
+			}
 		},
 	})
 	if err != nil {
@@ -268,6 +276,12 @@ func (m *Manager) onStatusChange(inst *Instance, status string) {
 //  2. Route — match channels by handle/filter
 //  3. Deliver — fan out to matched channels' sinks
 func (m *Manager) onInbound(inst *Instance, msg provider.InboundMessage) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("onInbound panic", "bot", inst.DBID, "msg", msg.ExternalID, "err", r)
+		}
+	}()
+
 	parsed := m.parseMessage(msg)
 
 	// Phase 1: Store message (independent of channels)
@@ -370,14 +384,21 @@ func (m *Manager) buildDBMessage(botDBID string, channelID *string, msg provider
 
 // storeMessage saves the message to DB without any channel association.
 func (m *Manager) storeMessage(inst *Instance, msg provider.InboundMessage, p parsedMessage) int64 {
-	_ = m.db.IncrBotMsgCount(inst.DBID)
+	if err := m.db.IncrBotMsgCount(inst.DBID); err != nil {
+		slog.Error("incr msg count failed", "bot", inst.DBID, "err", err)
+	}
 	dbMsg := m.buildDBMessage(inst.DBID, nil, msg, p)
 	seqID, _ := m.db.SaveMessage(dbMsg)
 	return seqID
 }
 
 // downloadMedia downloads media files async and updates stored messages.
+// Uses semaphore to limit concurrent downloads.
 func (m *Manager) downloadMedia(inst *Instance, msg provider.InboundMessage, msgID int64) {
+	// Acquire download slot
+	m.dlSem <- struct{}{}
+	defer func() { <-m.dlSem }()
+
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("media download panic", "err", r, "bot", inst.DBID)
@@ -448,16 +469,24 @@ func (m *Manager) matchChannels(botDBID, sender string, p parsedMessage) []datab
 	return matched
 }
 
-// deliverToChannels saves per-channel copies and fans out to sinks.
+// deliverToChannels saves per-channel copies and fans out to sinks concurrently.
 func (m *Manager) deliverToChannels(inst *Instance, msg provider.InboundMessage, p parsedMessage, matched []database.Channel) {
 	if len(matched) == 0 {
 		return
 	}
+
+	var wg sync.WaitGroup
 	for _, ch := range matched {
 		chID := ch.ID
 		dbMsg := m.buildDBMessage(inst.DBID, &chID, msg, p)
-		seqID, _ := m.db.SaveMessage(dbMsg)
-		_ = m.db.UpdateChannelLastSeq(ch.ID, seqID)
+		seqID, err := m.db.SaveMessage(dbMsg)
+		if err != nil {
+			slog.Error("save channel message failed", "bot", inst.DBID, "channel", ch.ID, "err", err)
+			continue
+		}
+		if err := m.db.UpdateChannelLastSeq(ch.ID, seqID); err != nil {
+			slog.Error("update channel last_seq failed", "channel", ch.ID, "err", err)
+		}
 
 		env := relay.NewEnvelope("message", relay.MessageData{
 			SeqID: seqID, ExternalID: msg.ExternalID,
@@ -472,9 +501,20 @@ func (m *Manager) deliverToChannels(inst *Instance, msg provider.InboundMessage,
 			MsgType: p.msgType, Content: p.content,
 		}
 		for _, s := range m.sinks {
-			go s.Handle(d)
+			wg.Add(1)
+			go func(sk sink.Sink, delivery sink.Delivery) {
+				defer wg.Done()
+				defer func() {
+					if r := recover(); r != nil {
+						slog.Error("sink panic", "sink", sk.Name(), "bot", delivery.BotDBID,
+							"channel", delivery.Channel.ID, "err", r)
+					}
+				}()
+				sk.Handle(delivery)
+			}(s, d)
 		}
 	}
+	wg.Wait()
 }
 
 // matchFilter checks if a message passes the channel's filter rule.

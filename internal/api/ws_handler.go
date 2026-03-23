@@ -67,7 +67,9 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				})
 				conn.Send(env)
 			}
-			_ = s.DB.UpdateChannelLastSeq(ch.ID, missed[len(missed)-1].ID)
+			if err := s.DB.UpdateChannelLastSeq(ch.ID, missed[len(missed)-1].ID); err != nil {
+				slog.Error("update channel last_seq failed", "channel", ch.ID, "err", err)
+			}
 		}
 	}
 
