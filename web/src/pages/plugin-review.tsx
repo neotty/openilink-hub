@@ -1,17 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { api } from "../lib/api";
 import { Check, X, Trash2, Github, Shield } from "lucide-react";
 
 export function ReviewCard({ plugin, onRefresh }: { plugin: any; onRefresh: () => void }) {
-  const [detail, setDetail] = useState<any>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [showReject, setShowReject] = useState(false);
-
-  useEffect(() => {
-    api.getPlugin(plugin.id).then(setDetail).catch(() => {});
-  }, [plugin.id]);
 
   async function handleApprove() {
     await api.reviewPlugin(plugin.id, "approved");
@@ -24,7 +19,7 @@ export function ReviewCard({ plugin, onRefresh }: { plugin: any; onRefresh: () =
   }
   async function handleDelete() {
     if (!confirm("永久删除此插件？")) return;
-    await api.deletePlugin(plugin.id);
+    await api.deletePlugin(plugin.plugin_id);
     onRefresh();
   }
 
@@ -47,8 +42,8 @@ export function ReviewCard({ plugin, onRefresh }: { plugin: any; onRefresh: () =
   if (wildcardMatch) risks.push({ level: "ok", text: "@match * — 所有消息类型触发" });
   else risks.push({ level: "ok", text: `@match 限定类型: ${matchTypes}` });
 
-  // Check script for suspicious patterns
-  const scriptText = detail?.script || "";
+  // script is included in the pending version response
+  const scriptText = plugin.script || "";
   if (scriptText.includes("while(true)") || scriptText.includes("for(;;)")) risks.push({ level: "danger", text: "检测到疑似死循环" });
   if (scriptText.includes("__proto__") || scriptText.includes("prototype")) risks.push({ level: "warn", text: "检测到原型链操作" });
   if ((scriptText.match(/reply\(/g) || []).length > 3) risks.push({ level: "warn", text: `多处 reply() 调用 (${(scriptText.match(/reply\(/g) || []).length} 处)` });
@@ -59,22 +54,26 @@ export function ReviewCard({ plugin, onRefresh }: { plugin: any; onRefresh: () =
   const overallLabels = { ok: "低风险", warn: "需注意", danger: "高风险" };
   const overallColors = { ok: "border-primary/30 bg-primary/5", warn: "border-yellow-500/30 bg-yellow-500/5", danger: "border-destructive/30 bg-destructive/5" };
 
+  // plugin metadata comes from joined fields: name, icon, description, author, submitter_name
+  const name = plugin.name || "未知插件";
+  const icon = plugin.icon;
+  const description = plugin.description;
+  const author = plugin.author;
+
   return (
     <div className={`rounded-xl border-2 ${overallColors[overallRisk]} p-4 space-y-3`}>
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            {plugin.icon && <span className="text-lg">{plugin.icon}</span>}
-            <span className="font-semibold text-sm">{plugin.name}</span>
+            {icon && <span className="text-lg">{icon}</span>}
+            <span className="font-semibold text-sm">{name}</span>
             <span className="text-[10px] text-muted-foreground">v{plugin.version}</span>
-            {plugin.namespace && <span className="text-[10px] font-mono text-muted-foreground">{plugin.namespace}</span>}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{plugin.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
           <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground flex-wrap">
-            <span>作者: {plugin.author || "anonymous"}</span>
-            <span>拥有者: {plugin.submitter_name}</span>
-            {plugin.license && <span>{plugin.license}</span>}
+            <span>作者: {author || "anonymous"}</span>
+            {plugin.submitter_name && <span>拥有者: {plugin.submitter_name}</span>}
             {plugin.github_url && (
               <a href={plugin.github_url} target="_blank" rel="noopener" className="text-primary hover:underline flex items-center gap-0.5">
                 <Github className="w-3 h-3" /> GitHub
@@ -123,7 +122,7 @@ export function ReviewCard({ plugin, onRefresh }: { plugin: any; onRefresh: () =
           <span className="text-[10px] text-muted-foreground">{scriptText.split("\n").length} 行</span>
         </div>
         <pre className="p-3 text-[10px] font-mono overflow-x-auto max-h-80 overflow-y-auto whitespace-pre-wrap">
-          {scriptText || "加载中..."}
+          {scriptText || "无脚本"}
         </pre>
       </div>
 

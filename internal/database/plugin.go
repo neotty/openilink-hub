@@ -47,7 +47,12 @@ type PluginVersion struct {
 	CreatedAt      int64           `json:"created_at"`
 
 	// Joined
-	ReviewerName string `json:"reviewer_name,omitempty"`
+	ReviewerName  string `json:"reviewer_name,omitempty"`
+	PluginName    string `json:"name,omitempty"`
+	PluginIcon    string `json:"icon,omitempty"`
+	PluginDesc    string `json:"description,omitempty"`
+	PluginAuthor  string `json:"author,omitempty"`
+	SubmitterName string `json:"submitter_name,omitempty"`
 }
 
 // PluginWithLatest is a plugin joined with its latest version info for listing.
@@ -230,14 +235,19 @@ func (db *DB) ListPluginVersions(pluginID string) ([]PluginVersion, error) {
 	return versions, rows.Err()
 }
 
-// ListPendingVersions returns all pending versions for admin review (includes script).
+// ListPendingVersions returns all pending versions for admin review (includes script + plugin metadata).
 func (db *DB) ListPendingVersions() ([]PluginVersion, error) {
 	rows, err := db.Query(`SELECT v.id, v.plugin_id, v.version, v.changelog, v.script,
 		v.config_schema, v.github_url, v.commit_hash,
 		v.match_types, v.connect_domains, v.grant_perms, v.timeout_sec,
 		v.status, v.reject_reason, v.reviewed_by,
-		EXTRACT(EPOCH FROM v.created_at)::BIGINT, COALESCE(u.username, '')
-		FROM plugin_versions v LEFT JOIN users u ON u.id = v.reviewed_by
+		EXTRACT(EPOCH FROM v.created_at)::BIGINT, COALESCE(ru.username, ''),
+		p.name, COALESCE(p.icon, ''), COALESCE(p.description, ''), COALESCE(p.author, ''),
+		COALESCE(ou.username, '')
+		FROM plugin_versions v
+		LEFT JOIN users ru ON ru.id = v.reviewed_by
+		JOIN plugins p ON p.id = v.plugin_id
+		LEFT JOIN users ou ON ou.id = p.owner_id
 		WHERE v.status = 'pending' ORDER BY v.created_at DESC`)
 	if err != nil {
 		return nil, err
@@ -249,7 +259,8 @@ func (db *DB) ListPendingVersions() ([]PluginVersion, error) {
 		if err := rows.Scan(&v.ID, &v.PluginID, &v.Version, &v.Changelog, &v.Script,
 			&v.ConfigSchema, &v.GithubURL, &v.CommitHash,
 			&v.MatchTypes, &v.ConnectDomains, &v.GrantPerms, &v.TimeoutSec,
-			&v.Status, &v.RejectReason, &v.ReviewedBy, &v.CreatedAt, &v.ReviewerName); err != nil {
+			&v.Status, &v.RejectReason, &v.ReviewedBy, &v.CreatedAt, &v.ReviewerName,
+			&v.PluginName, &v.PluginIcon, &v.PluginDesc, &v.PluginAuthor, &v.SubmitterName); err != nil {
 			return nil, err
 		}
 		versions = append(versions, v)
