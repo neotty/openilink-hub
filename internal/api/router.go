@@ -118,6 +118,9 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("PUT /api/admin/users/{id}/password", s.requireAdmin(s.handleResetUserPassword))
 	protected.HandleFunc("DELETE /api/admin/users/{id}", s.requireAdmin(s.handleDeleteUser))
 
+	// --- Admin: dashboard ---
+	protected.HandleFunc("GET /api/admin/stats", s.requireAdmin(s.handleAdminStats))
+
 	// --- Admin: system config ---
 	protected.HandleFunc("GET /api/admin/config/oauth", s.requireAdmin(s.handleGetOAuthConfig))
 	protected.HandleFunc("PUT /api/admin/config/oauth/{provider}", s.requireAdmin(s.handleSetOAuthConfig))

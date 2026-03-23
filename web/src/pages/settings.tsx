@@ -108,10 +108,46 @@ export function SettingsPage() {
         </Card>
       )}
 
+      {user.role === "admin" && <AdminDashboard />}
       {user.role === "admin" && <SystemStatusSection />}
       {user.role === "admin" && <AIConfigSection />}
       {user.role === "admin" && <OAuthConfigSection />}
     </div>
+  );
+}
+
+function AdminDashboard() {
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    api.adminStats().then(setStats).catch(() => {});
+    const t = setInterval(() => api.adminStats().then(setStats).catch(() => {}), 10000);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!stats) return null;
+
+  const items = [
+    { label: "用户", value: stats.total_users, sub: `${stats.active_users} 活跃` },
+    { label: "Bot", value: stats.total_bots, sub: `${stats.online_bots} 在线${stats.expired_bots > 0 ? ` / ${stats.expired_bots} 过期` : ""}` },
+    { label: "渠道", value: stats.total_channels },
+    { label: "WebSocket", value: stats.connected_ws, sub: "在线连接" },
+    { label: "总消息", value: stats.total_messages.toLocaleString(), sub: `${stats.inbound_messages.toLocaleString()} 入 / ${stats.outbound_messages.toLocaleString()} 出` },
+  ];
+
+  return (
+    <Card className="space-y-3">
+      <h3 className="text-sm font-medium">管理面板</h3>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {items.map((item) => (
+          <div key={item.label} className="p-3 rounded-lg border bg-background text-center">
+            <p className="text-2xl font-bold">{item.value}</p>
+            <p className="text-xs text-muted-foreground">{item.label}</p>
+            {item.sub && <p className="text-[10px] text-muted-foreground mt-0.5">{item.sub}</p>}
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 

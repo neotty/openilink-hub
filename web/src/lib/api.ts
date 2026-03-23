@@ -75,6 +75,9 @@ export const api = {
     request("/api/admin/config/ai", { method: "PUT", body: JSON.stringify(data) }),
   deleteAIConfig: () => request("/api/admin/config/ai", { method: "DELETE" }),
 
+  // Admin: Dashboard
+  adminStats: () => request<any>("/api/admin/stats"),
+
   // Admin: Users
   listUsers: () => request<any[]>("/api/admin/users"),
   createUser: (data: any) => request("/api/admin/users", { method: "POST", body: JSON.stringify(data) }),

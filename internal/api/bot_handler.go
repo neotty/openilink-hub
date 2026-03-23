@@ -258,6 +258,17 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(stats)
 }
 
+func (s *Server) handleAdminStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := s.DB.GetAdminStats()
+	if err != nil {
+		jsonError(w, "stats failed", http.StatusInternalServerError)
+		return
+	}
+	stats.ConnectedWS = s.Hub.ConnectedCount()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
+}
+
 // POST /api/bots/{id}/send
 // Supports JSON body (text) or multipart/form-data (media).
 // JSON: {"text": "hello", "recipient": "optional"}

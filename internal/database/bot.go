@@ -150,6 +150,32 @@ type BotStats struct {
 	ConnectedWS   int   `json:"connected_ws"` // set by API layer
 }
 
+// AdminStats returns system-wide stats for the admin dashboard.
+type AdminStats struct {
+	TotalUsers       int   `json:"total_users"`
+	ActiveUsers      int   `json:"active_users"`
+	TotalBots        int   `json:"total_bots"`
+	OnlineBots       int   `json:"online_bots"`
+	ExpiredBots      int   `json:"expired_bots"`
+	TotalChannels    int   `json:"total_channels"`
+	TotalMessages    int64 `json:"total_messages"`
+	InboundMessages  int64 `json:"inbound_messages"`
+	OutboundMessages int64 `json:"outbound_messages"`
+	ConnectedWS      int   `json:"connected_ws"` // set by API layer
+}
+
+func (db *DB) GetAdminStats() (*AdminStats, error) {
+	s := &AdminStats{}
+	db.QueryRow(`SELECT COUNT(*), COUNT(*) FILTER (WHERE status = 'active') FROM users`).
+		Scan(&s.TotalUsers, &s.ActiveUsers)
+	db.QueryRow(`SELECT COUNT(*), COUNT(*) FILTER (WHERE status = 'connected'), COUNT(*) FILTER (WHERE status = 'session_expired') FROM bots`).
+		Scan(&s.TotalBots, &s.OnlineBots, &s.ExpiredBots)
+	db.QueryRow(`SELECT COUNT(*) FROM channels`).Scan(&s.TotalChannels)
+	db.QueryRow(`SELECT COUNT(*), COUNT(*) FILTER (WHERE direction = 'inbound'), COUNT(*) FILTER (WHERE direction = 'outbound') FROM messages`).
+		Scan(&s.TotalMessages, &s.InboundMessages, &s.OutboundMessages)
+	return s, nil
+}
+
 func (db *DB) GetBotStats(userID string) (*BotStats, error) {
 	s := &BotStats{}
 	err := db.QueryRow(`
