@@ -171,6 +171,9 @@ func (s *Server) Handler() http.Handler {
 	protected.HandleFunc("PUT /api/admin/webhook-plugins/{id}/review", s.requireAdmin(s.handleReviewPlugin))
 	protected.HandleFunc("DELETE /api/admin/webhook-plugins/{id}", s.requireAdmin(s.handleDeletePlugin))
 
+	// --- Admin: apps ---
+	protected.HandleFunc("PUT /api/admin/apps/{id}/listed", s.requireAdmin(s.handleSetAppListed))
+
 	// --- Admin: system config ---
 	protected.HandleFunc("GET /api/admin/config/oauth", s.requireAdmin(s.handleGetOAuthConfig))
 	protected.HandleFunc("PUT /api/admin/config/oauth/{provider}", s.requireAdmin(s.handleSetOAuthConfig))

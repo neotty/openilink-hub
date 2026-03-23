@@ -70,11 +70,17 @@ func (s *Server) handleCreateApp(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(app)
 }
 
-// GET /api/apps
+// GET /api/apps?listed=true — public marketplace; otherwise my apps
 func (s *Server) handleListApps(w http.ResponseWriter, r *http.Request) {
-	userID := auth.UserIDFromContext(r.Context())
+	var apps []database.App
+	var err error
 
-	apps, err := s.DB.ListAppsByOwner(userID)
+	if r.URL.Query().Get("listed") == "true" {
+		apps, err = s.DB.ListListedApps()
+	} else {
+		userID := auth.UserIDFromContext(r.Context())
+		apps, err = s.DB.ListAppsByOwner(userID)
+	}
 	if err != nil {
 		jsonError(w, "list failed", http.StatusInternalServerError)
 		return
@@ -96,9 +102,13 @@ func (s *Server) handleGetApp(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "not found", http.StatusNotFound)
 		return
 	}
+	// Owner can see everything; others can only see listed apps (without client_secret)
 	if app.OwnerID != userID {
-		jsonError(w, "not found", http.StatusNotFound)
-		return
+		if !app.Listed {
+			jsonError(w, "not found", http.StatusNotFound)
+			return
+		}
+		app.ClientSecret = "" // hide secret from non-owners
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -197,6 +207,23 @@ func (s *Server) handleDeleteApp(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.DB.DeleteApp(appID); err != nil {
 		jsonError(w, "delete failed", http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w)
+}
+
+// PUT /api/admin/apps/{id}/listed — toggle listed status (admin only)
+func (s *Server) handleSetAppListed(w http.ResponseWriter, r *http.Request) {
+	appID := r.PathValue("id")
+	var req struct {
+		Listed bool `json:"listed"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	if err := s.DB.SetAppListed(appID, req.Listed); err != nil {
+		jsonError(w, "update failed", http.StatusInternalServerError)
 		return
 	}
 	jsonOK(w)
