@@ -12,8 +12,7 @@
     "check:fix": "vp check --fix",
     "lint": "vp lint",
     "fmt": "vp fmt",
-    "test": "vp test",
-    "postinstall": "git -C .. config core.hooksPath .vite-hooks"
+    "test": "vp test"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",
