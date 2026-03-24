@@ -114,6 +114,9 @@ func (s *Server) Handler() http.Handler {
 	// Webhook logs
 	protected.HandleFunc("GET /api/bots/{id}/webhook-logs", s.handleWebhookLogs)
 
+	// Bot app installations
+	protected.HandleFunc("GET /api/bots/{id}/apps", s.handleListBotApps)
+
 	// Channels (under bots)
 	protected.HandleFunc("GET /api/bots/{id}/channels", s.handleListChannels)
 	protected.HandleFunc("POST /api/bots/{id}/channels", s.handleCreateChannel)

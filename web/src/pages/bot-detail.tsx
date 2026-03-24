@@ -22,6 +22,8 @@ import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { api } from "../lib/api";
 
+import { BotAppsTab } from "./bot-apps-tab";
+
 type MessageItem = { type: string; text?: string; file_name?: string };
 type Message = {
   id: number;
@@ -184,7 +186,7 @@ export function BotDetailPage() {
   const navigate = useNavigate();
   const [bot, setBot] = useState<any>(null);
   const [channels, setChannels] = useState<any[]>([]);
-  const [tab, setTab] = useState<"chat" | "channels" | "settings">("chat");
+  const [tab, setTab] = useState<"chat" | "channels" | "apps" | "settings">("chat");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -441,6 +443,12 @@ export function BotDetailPage() {
           通道
         </button>
         <button
+          className={`px-3 py-1.5 text-xs cursor-pointer ${tab === "apps" ? "bg-secondary font-medium" : "text-muted-foreground"}`}
+          onClick={() => setTab("apps")}
+        >
+          Apps
+        </button>
+        <button
           className={`px-3 py-1.5 text-xs cursor-pointer ${tab === "settings" ? "bg-secondary font-medium" : "text-muted-foreground"}`}
           onClick={() => setTab("settings")}
         >
@@ -586,6 +594,8 @@ export function BotDetailPage() {
         </div>
       ) : tab === "channels" ? (
         <ChannelsTab botId={id!} channels={channels} onRefresh={loadChannels} />
+      ) : tab === "apps" ? (
+        <BotAppsTab botId={id!} />
       ) : (
         <BotSettingsTab bot={bot} onUpdate={loadBot} />
       )}

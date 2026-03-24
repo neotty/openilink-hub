@@ -330,6 +330,30 @@ func (s *Server) handleAppAPILogs(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(logs)
 }
 
+// GET /api/bots/{id}/apps — list app installations on a bot
+func (s *Server) handleListBotApps(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	botID := r.PathValue("id")
+
+	bot, err := s.DB.GetBot(botID)
+	if err != nil || bot.UserID != userID {
+		jsonError(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	installations, err := s.DB.ListInstallationsByBot(botID)
+	if err != nil {
+		jsonError(w, "query failed", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if installations == nil {
+		installations = []database.AppInstallation{}
+	}
+	json.NewEncoder(w).Encode(installations)
+}
+
 // notifyAppInstalled POSTs installation credentials to the App's redirect_url.
 // The App responds with its request_url, which Hub auto-sets and verifies.
 func (s *Server) notifyAppInstalled(app *database.App, inst *database.AppInstallation) {
