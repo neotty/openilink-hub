@@ -74,7 +74,7 @@ func (m *Manager) deliverToApps(inst *Instance, msg provider.InboundMessage, p p
 		} else {
 			done("error", "no result")
 		}
-		m.sendAppResult(inst, msg.Sender, result)
+		m.sendAppResult(inst, msg.Sender, result, trace)
 	}
 }
 
@@ -122,7 +122,7 @@ func (m *Manager) tryDeliverMention(inst *Instance, msg provider.InboundMessage,
 		} else {
 			done("error", "no result")
 		}
-		m.sendAppResult(inst, msg.Sender, result)
+		m.sendAppResult(inst, msg.Sender, result, trace)
 		return true
 	}
 
@@ -137,7 +137,7 @@ func (m *Manager) tryDeliverMention(inst *Instance, msg provider.InboundMessage,
 	} else {
 		done("error", "no result")
 	}
-	m.sendAppResult(inst, msg.Sender, result)
+	m.sendAppResult(inst, msg.Sender, result, trace)
 	return true
 }
 
@@ -168,13 +168,13 @@ func (m *Manager) tryDeliverCommand(inst *Instance, msg provider.InboundMessage,
 		} else {
 			done("error", "no result")
 		}
-		m.sendAppResult(inst, msg.Sender, result)
+		m.sendAppResult(inst, msg.Sender, result, trace)
 	}
 	return true
 }
 
 // sendAppResult sends a reply from an App via the bot and stores it as outbound.
-func (m *Manager) sendAppResult(inst *Instance, to string, result *appdelivery.DeliveryResult) {
+func (m *Manager) sendAppResult(inst *Instance, to string, result *appdelivery.DeliveryResult, trace *database.TraceBuilder) {
 	if result == nil {
 		return
 	}
@@ -185,12 +185,16 @@ func (m *Manager) sendAppResult(inst *Instance, to string, result *appdelivery.D
 
 	switch result.ReplyType {
 	case "image", "video", "file":
+		done := trace.StartTimer("reply", "send "+result.ReplyType+" to "+to)
 		m.sendAppMedia(ctx, inst, to, contextToken, result)
+		done("ok", result.ReplyName)
 	default:
 		if result.Reply == "" {
 			return
 		}
+		done := trace.StartTimer("reply", "send text to "+to)
 		m.sendAppText(ctx, inst, to, contextToken, result.Reply)
+		done("ok", result.Reply)
 	}
 }
 
