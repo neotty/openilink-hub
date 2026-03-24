@@ -89,7 +89,7 @@ func (m *Manager) tryDeliverMention(inst *Instance, msg provider.InboundMessage,
 	// @handle /command args → deliver as command to this specific installation
 	if strings.HasPrefix(text, "/") {
 		cmdParts := strings.SplitN(text[1:], " ", 2)
-		command := "/" + strings.ToLower(cmdParts[0])
+		command := strings.ToLower(cmdParts[0])
 		cmdArgs := ""
 		if len(cmdParts) > 1 {
 			cmdArgs = strings.TrimSpace(cmdParts[1])
@@ -135,7 +135,7 @@ func (m *Manager) tryDeliverCommand(inst *Instance, msg provider.InboundMessage,
 	}
 
 	event := appdelivery.NewEvent("command", map[string]any{
-		"command": "/" + command,
+		"command": command,
 		"text":    args,
 		"sender":  map[string]any{"id": msg.Sender, "name": msg.Sender},
 		"group":   groupInfo(msg),

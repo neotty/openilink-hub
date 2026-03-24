@@ -80,12 +80,12 @@ Example — a GitHub App with tools:
 
 **By user (slash command):** User sends `/pr openilink/openilink-hub` → platform delivers:
 ```json
-{"command": "/pr", "text": "openilink/openilink-hub", "args": null}
+{"command": "pr", "text": "openilink/openilink-hub", "args": null}
 ```
 
 **By AI Agent (tool calling):** AI decides to call `list_prs` → platform delivers:
 ```json
-{"command": "/pr", "text": "", "args": {"repo": "openilink/openilink-hub", "state": "open"}}
+{"command": "pr", "text": "", "args": {"repo": "openilink/openilink-hub", "state": "open"}}
 ```
 
 **Via @handle:** User sends `@github /pr args` or `@github list my PRs` (AI Agent interprets).
@@ -197,7 +197,7 @@ When a user sends `/command args` or the AI Agent calls a tool, the platform rou
     "id": "evt_xxx",
     "timestamp": 1711234567,
     "data": {
-      "command": "/pr",
+      "command": "pr",
       "text": "openilink/openilink-hub open",
       "args": null,
       "sender": {"id": "wxid_abc", "name": "Zhang San"},
@@ -220,7 +220,7 @@ When a user sends `/command args` or the AI Agent calls a tool, the platform rou
     "id": "evt_xxx",
     "timestamp": 1711234567,
     "data": {
-      "command": "/pr",
+      "command": "pr",
       "text": "",
       "args": {"repo": "openilink/openilink-hub", "state": "open"},
       "sender": {"id": "system", "name": "AI Agent"},
@@ -241,11 +241,11 @@ def handle():
         args = cmd.get("args") or {}  # structured (from AI Agent)
         text = cmd.get("text", "")     # free-form (from user)
 
-        if cmd["command"] == "/pr":
+        if cmd["command"] == "pr":
             repo = args.get("repo") or text.split()[0] if text else None
             state = args.get("state", "open")
             return list_prs(repo, state)
-        elif cmd["command"] == "/issue":
+        elif cmd["command"] == "issue":
             repo = args.get("repo") or text.split()[0] if text else None
             title = args.get("title") or " ".join(text.split()[1:])
             return create_issue(repo, title, args.get("body"))
@@ -433,8 +433,8 @@ A complete App that:
 ```
 Name: GitHub Bot
 Slug: github-bot
-Commands: [{"name": "/github", "description": "GitHub commands", "usage": "/github subscribe owner/repo"}]
-Events: ["message.text"]
+Tools: [{"name": "github_cmd", "description": "GitHub commands", "command": "github"}]
+Events: []
 Scopes: ["messages.send", "contacts.read"]
 ```
 
@@ -478,7 +478,7 @@ def handle_event():
     # Handle command
     if data["type"] == "command":
         cmd = data["event"]["data"]
-        if cmd["command"] == "/github":
+        if cmd["command"] == "github":
             return jsonify({"reply": f"GitHub command received: {cmd['text']}"})
 
     # Handle message
