@@ -62,7 +62,11 @@ func (s *Server) handleInstallApp(w http.ResponseWriter, r *http.Request) {
 
 	// Auto-notify App via redirect_url (for apps without setup_url)
 	if app.SetupURL == "" && app.RedirectURL != "" {
-		go s.notifyAppInstalled(app, inst)
+		s.notifyAppInstalled(app, inst)
+		// Re-read installation to get updated request_url
+		if updated, err := s.DB.GetInstallation(inst.ID); err == nil {
+			inst = updated
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
