@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -182,33 +183,46 @@ func (m *Manager) sendAppText(ctx context.Context, inst *Instance, to, contextTo
 }
 
 func (m *Manager) sendAppMedia(ctx context.Context, inst *Instance, to, contextToken string, result *appdelivery.DeliveryResult) {
-	if result.ReplyURL == "" {
-		// No URL, send reply text as fallback
+	var data []byte
+	var err error
+
+	if result.ReplyBase64 != "" {
+		// Decode base64 directly
+		data, err = base64.StdEncoding.DecodeString(result.ReplyBase64)
+		if err != nil {
+			slog.Error("app media base64 decode failed", "err", err)
+			if result.Reply != "" {
+				m.sendAppText(ctx, inst, to, contextToken, result.Reply)
+			}
+			return
+		}
+	} else if result.ReplyURL != "" {
+		// Download media from URL
+		dlCtx, dlCancel := context.WithTimeout(ctx, 8*time.Second)
+		defer dlCancel()
+
+		req, err := http.NewRequestWithContext(dlCtx, http.MethodGet, result.ReplyURL, nil)
+		if err != nil {
+			slog.Error("app media download: bad url", "url", result.ReplyURL, "err", err)
+			return
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			slog.Error("app media download failed", "url", result.ReplyURL, "err", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		data, err = io.ReadAll(io.LimitReader(resp.Body, 20*1024*1024)) // 20MB max
+		if err != nil {
+			slog.Error("app media read failed", "err", err)
+			return
+		}
+	} else {
+		// No media source, send text fallback
 		if result.Reply != "" {
 			m.sendAppText(ctx, inst, to, contextToken, result.Reply)
 		}
-		return
-	}
-
-	// Download media from URL
-	dlCtx, dlCancel := context.WithTimeout(ctx, 8*time.Second)
-	defer dlCancel()
-
-	req, err := http.NewRequestWithContext(dlCtx, http.MethodGet, result.ReplyURL, nil)
-	if err != nil {
-		slog.Error("app media download: bad url", "url", result.ReplyURL, "err", err)
-		return
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		slog.Error("app media download failed", "url", result.ReplyURL, "err", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 20*1024*1024)) // 20MB max
-	if err != nil {
-		slog.Error("app media read failed", "err", err)
 		return
 	}
 

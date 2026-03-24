@@ -295,13 +295,19 @@ Return a JSON body with your reply. The platform sends it to the user immediatel
 {"reply_type": "file", "reply_url": "https://example.com/report.pdf", "reply_name": "report.pdf"}
 ```
 
-**Text + media:** You can include both `reply` (text) and `reply_url` (media). If `reply_type` is media but URL fails, `reply` text is sent as fallback.
+**Base64 media (no URL needed):**
+```json
+{"reply_type": "image", "reply_base64": "iVBORw0KGgo...", "reply_name": "chart.png"}
+```
+
+**Fallback:** If `reply_type` is media but URL/base64 fails, `reply` text is sent as fallback.
 
 | Field | Required | Description |
 |---|---|---|
-| `reply` | No | Text message content |
+| `reply` | No | Text message content (or fallback for failed media) |
 | `reply_type` | No | `text` (default), `image`, `video`, `file` |
 | `reply_url` | No | URL to media file (platform downloads and sends) |
+| `reply_base64` | No | Base64-encoded media data (no download needed) |
 | `reply_name` | No | Filename for the media (e.g. `report.pdf`) |
 
 #### Method 2: Asynchronous Reply (via Bot API)

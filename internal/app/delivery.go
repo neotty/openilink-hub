@@ -38,11 +38,12 @@ type Event struct {
 
 // DeliveryResult holds the outcome of an event delivery attempt.
 type DeliveryResult struct {
-	Reply      string `json:"reply,omitempty"`
-	ReplyType  string `json:"reply_type,omitempty"`  // text, image, video, file
-	ReplyURL   string `json:"reply_url,omitempty"`   // media URL for image/video/file
-	ReplyName  string `json:"reply_name,omitempty"`  // filename for file type
-	StatusCode int    `json:"status_code"`
+	Reply       string `json:"reply,omitempty"`
+	ReplyType   string `json:"reply_type,omitempty"`   // text, image, video, file
+	ReplyURL    string `json:"reply_url,omitempty"`    // media URL (platform downloads)
+	ReplyBase64 string `json:"reply_base64,omitempty"` // media as base64 (direct)
+	ReplyName   string `json:"reply_name,omitempty"`   // filename
+	StatusCode  int    `json:"status_code"`
 }
 
 // eventEnvelope is the JSON structure POSTed to the app's request_url.
@@ -61,10 +62,11 @@ type envelopBot struct {
 
 // syncReply is the optional reply parsed from the app's HTTP response.
 type syncReply struct {
-	Reply     string `json:"reply"`
-	ReplyType string `json:"reply_type"`
-	ReplyURL  string `json:"reply_url"`
-	ReplyName string `json:"reply_name"`
+	Reply       string `json:"reply"`
+	ReplyType   string `json:"reply_type"`
+	ReplyURL    string `json:"reply_url"`
+	ReplyBase64 string `json:"reply_base64"`
+	ReplyName   string `json:"reply_name"`
 }
 
 // eventLogger is the interface used for event logging operations.
@@ -193,10 +195,11 @@ func (d *Dispatcher) DeliverEvent(inst *database.AppInstallation, event *Event) 
 	// Parse optional sync reply.
 	if len(respBody) > 0 {
 		var sr syncReply
-		if json.Unmarshal(respBody, &sr) == nil && (sr.Reply != "" || sr.ReplyURL != "") {
+		if json.Unmarshal(respBody, &sr) == nil && (sr.Reply != "" || sr.ReplyURL != "" || sr.ReplyBase64 != "") {
 			result.Reply = sr.Reply
 			result.ReplyType = sr.ReplyType
 			result.ReplyURL = sr.ReplyURL
+			result.ReplyBase64 = sr.ReplyBase64
 			result.ReplyName = sr.ReplyName
 			if result.ReplyType == "" {
 				result.ReplyType = "text"
