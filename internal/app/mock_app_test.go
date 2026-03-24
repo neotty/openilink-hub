@@ -310,7 +310,7 @@ func TestMockApp_FullFlowWithMatchAndDeliver(t *testing.T) {
 	})
 	defer m.close()
 
-	cmds, _ := json.Marshal([]database.AppCommand{{Name: "deploy"}})
+	cmds, _ := json.Marshal([]database.AppTool{{Name: "run_deploy", Command: "deploy"}})
 	events, _ := json.Marshal([]string{"message"})
 
 	store := &mockAppStore{
@@ -322,7 +322,7 @@ func TestMockApp_FullFlowWithMatchAndDeliver(t *testing.T) {
 			},
 		},
 		apps: map[string]*database.App{
-			"app-ff-1": {ID: "app-ff-1", Commands: cmds, Events: events},
+			"app-ff-1": {ID: "app-ff-1", Tools: cmds, Events: events},
 		},
 	}
 

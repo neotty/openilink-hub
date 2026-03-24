@@ -18,7 +18,7 @@ type App struct {
 	Description string          `json:"description"`
 	Icon        string          `json:"icon,omitempty"`
 	Homepage    string          `json:"homepage,omitempty"`
-	Commands    json.RawMessage `json:"commands"`
+	Tools       json.RawMessage `json:"tools"`
 	Events      json.RawMessage `json:"events"`
 	Scopes      json.RawMessage `json:"scopes"`
 	SetupURL    string          `json:"setup_url,omitempty"`
@@ -33,11 +33,13 @@ type App struct {
 	OwnerName string `json:"owner_name,omitempty"`
 }
 
-// AppCommand is a slash command registered by an app.
-type AppCommand struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Usage       string `json:"usage,omitempty"`
+// AppTool is a tool (function) exposed by an app.
+// It can optionally be triggered as a slash command via the Command field.
+type AppTool struct {
+	Name        string          `json:"name"`                  // tool identifier, e.g. "list_prs"
+	Description string          `json:"description"`           // what it does (used by LLM)
+	Command     string          `json:"command,omitempty"`     // optional slash trigger, e.g. "pr"
+	Parameters  json.RawMessage `json:"parameters,omitempty"`  // JSON Schema for structured args
 }
 
 // AppInstallation is a per-bot installation of an app.
@@ -71,8 +73,8 @@ func generateToken(n int) string {
 // CreateApp creates a new app.
 func (db *DB) CreateApp(app *App) (*App, error) {
 	app.ID = uuid.New().String()
-	if app.Commands == nil {
-		app.Commands = json.RawMessage("[]")
+	if app.Tools == nil {
+		app.Tools = json.RawMessage("[]")
 	}
 	if app.Events == nil {
 		app.Events = json.RawMessage("[]")
@@ -83,11 +85,11 @@ func (db *DB) CreateApp(app *App) (*App, error) {
 	if app.ClientSecret == "" {
 		app.ClientSecret = generateToken(32)
 	}
-	err := db.QueryRow(`INSERT INTO apps (id, owner_id, name, slug, description, icon, homepage, commands, events, scopes, setup_url, redirect_url, client_secret, listed)
+	err := db.QueryRow(`INSERT INTO apps (id, owner_id, name, slug, description, icon, homepage, tools, events, scopes, setup_url, redirect_url, client_secret, listed)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		RETURNING EXTRACT(EPOCH FROM created_at)::BIGINT, EXTRACT(EPOCH FROM updated_at)::BIGINT`,
 		app.ID, app.OwnerID, app.Name, app.Slug, app.Description, app.Icon, app.Homepage,
-		app.Commands, app.Events, app.Scopes, app.SetupURL, app.RedirectURL, app.ClientSecret, app.Listed,
+		app.Tools, app.Events, app.Scopes, app.SetupURL, app.RedirectURL, app.ClientSecret, app.Listed,
 	).Scan(&app.CreatedAt, &app.UpdatedAt)
 	app.Status = "active"
 	return app, err
@@ -97,13 +99,13 @@ func (db *DB) CreateApp(app *App) (*App, error) {
 func (db *DB) GetApp(id string) (*App, error) {
 	a := &App{}
 	err := db.QueryRow(`SELECT a.id, a.owner_id, a.name, a.slug, a.description, a.icon, a.homepage,
-		a.commands, a.events, a.scopes, a.setup_url, a.redirect_url, a.client_secret, a.listed, a.status,
+		a.tools, a.events, a.scopes, a.setup_url, a.redirect_url, a.client_secret, a.listed, a.status,
 		EXTRACT(EPOCH FROM a.created_at)::BIGINT, EXTRACT(EPOCH FROM a.updated_at)::BIGINT,
 		COALESCE(u.username, '')
 		FROM apps a LEFT JOIN users u ON u.id = a.owner_id
 		WHERE a.id = $1`, id).Scan(
 		&a.ID, &a.OwnerID, &a.Name, &a.Slug, &a.Description, &a.Icon, &a.Homepage,
-		&a.Commands, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
+		&a.Tools, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
 		&a.CreatedAt, &a.UpdatedAt, &a.OwnerName)
 	if err != nil {
 		return nil, err
@@ -115,11 +117,11 @@ func (db *DB) GetApp(id string) (*App, error) {
 func (db *DB) GetAppBySlug(slug string) (*App, error) {
 	a := &App{}
 	err := db.QueryRow(`SELECT id, owner_id, name, slug, description, icon, homepage,
-		commands, events, scopes, setup_url, redirect_url, client_secret, listed, status,
+		tools, events, scopes, setup_url, redirect_url, client_secret, listed, status,
 		EXTRACT(EPOCH FROM created_at)::BIGINT, EXTRACT(EPOCH FROM updated_at)::BIGINT
 		FROM apps WHERE slug = $1`, slug).Scan(
 		&a.ID, &a.OwnerID, &a.Name, &a.Slug, &a.Description, &a.Icon, &a.Homepage,
-		&a.Commands, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
+		&a.Tools, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
 		&a.CreatedAt, &a.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -130,7 +132,7 @@ func (db *DB) GetAppBySlug(slug string) (*App, error) {
 // ListAppsByOwner returns all apps owned by a user.
 func (db *DB) ListAppsByOwner(ownerID string) ([]App, error) {
 	rows, err := db.Query(`SELECT id, owner_id, name, slug, description, icon, homepage,
-		commands, events, scopes, setup_url, redirect_url, client_secret, listed, status,
+		tools, events, scopes, setup_url, redirect_url, client_secret, listed, status,
 		EXTRACT(EPOCH FROM created_at)::BIGINT, EXTRACT(EPOCH FROM updated_at)::BIGINT
 		FROM apps WHERE owner_id = $1 ORDER BY created_at DESC`, ownerID)
 	if err != nil {
@@ -141,7 +143,7 @@ func (db *DB) ListAppsByOwner(ownerID string) ([]App, error) {
 	for rows.Next() {
 		var a App
 		if err := rows.Scan(&a.ID, &a.OwnerID, &a.Name, &a.Slug, &a.Description, &a.Icon, &a.Homepage,
-			&a.Commands, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
+			&a.Tools, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
 			&a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -153,7 +155,7 @@ func (db *DB) ListAppsByOwner(ownerID string) ([]App, error) {
 // ListListedApps returns all publicly listed apps.
 func (db *DB) ListListedApps() ([]App, error) {
 	rows, err := db.Query(`SELECT a.id, a.owner_id, a.name, a.slug, a.description, a.icon, a.homepage,
-		a.commands, a.events, a.scopes, a.setup_url, a.redirect_url, '', a.listed, a.status,
+		a.tools, a.events, a.scopes, a.setup_url, a.redirect_url, '', a.listed, a.status,
 		EXTRACT(EPOCH FROM a.created_at)::BIGINT, EXTRACT(EPOCH FROM a.updated_at)::BIGINT,
 		COALESCE(u.username, '')
 		FROM apps a LEFT JOIN users u ON u.id = a.owner_id
@@ -166,7 +168,7 @@ func (db *DB) ListListedApps() ([]App, error) {
 	for rows.Next() {
 		var a App
 		if err := rows.Scan(&a.ID, &a.OwnerID, &a.Name, &a.Slug, &a.Description, &a.Icon, &a.Homepage,
-			&a.Commands, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
+			&a.Tools, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
 			&a.CreatedAt, &a.UpdatedAt, &a.OwnerName); err != nil {
 			return nil, err
 		}
@@ -178,7 +180,7 @@ func (db *DB) ListListedApps() ([]App, error) {
 // ListAllApps returns all apps (admin only).
 func (db *DB) ListAllApps() ([]App, error) {
 	rows, err := db.Query(`SELECT a.id, a.owner_id, a.name, a.slug, a.description, a.icon, a.homepage,
-		a.commands, a.events, a.scopes, a.setup_url, a.redirect_url, '', a.listed, a.status,
+		a.tools, a.events, a.scopes, a.setup_url, a.redirect_url, '', a.listed, a.status,
 		EXTRACT(EPOCH FROM a.created_at)::BIGINT, EXTRACT(EPOCH FROM a.updated_at)::BIGINT,
 		COALESCE(u.username, '')
 		FROM apps a LEFT JOIN users u ON u.id = a.owner_id
@@ -191,7 +193,7 @@ func (db *DB) ListAllApps() ([]App, error) {
 	for rows.Next() {
 		var a App
 		if err := rows.Scan(&a.ID, &a.OwnerID, &a.Name, &a.Slug, &a.Description, &a.Icon, &a.Homepage,
-			&a.Commands, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
+			&a.Tools, &a.Events, &a.Scopes, &a.SetupURL, &a.RedirectURL, &a.ClientSecret, &a.Listed, &a.Status,
 			&a.CreatedAt, &a.UpdatedAt, &a.OwnerName); err != nil {
 			return nil, err
 		}
@@ -207,10 +209,10 @@ func (db *DB) SetAppListed(id string, listed bool) error {
 }
 
 // UpdateApp updates an app's fields.
-func (db *DB) UpdateApp(id string, name, description, icon, homepage, setupURL, redirectURL string, commands, events, scopes json.RawMessage) error {
+func (db *DB) UpdateApp(id string, name, description, icon, homepage, setupURL, redirectURL string, tools, events, scopes json.RawMessage) error {
 	_, err := db.Exec(`UPDATE apps SET name=$1, description=$2, icon=$3, homepage=$4,
-		commands=$5, events=$6, scopes=$7, setup_url=$8, redirect_url=$9, updated_at=NOW() WHERE id=$10`,
-		name, description, icon, homepage, commands, events, scopes, setupURL, redirectURL, id)
+		tools=$5, events=$6, scopes=$7, setup_url=$8, redirect_url=$9, updated_at=NOW() WHERE id=$10`,
+		name, description, icon, homepage, tools, events, scopes, setupURL, redirectURL, id)
 	return err
 }
 

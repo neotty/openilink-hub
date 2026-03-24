@@ -182,7 +182,7 @@ function SettingsTab({ app, onUpdate }: { app: any; onUpdate: () => void }) {
         </form>
       </Card>
 
-      <CommandsEditor app={app} onUpdate={onUpdate} />
+      <ToolsEditor app={app} onUpdate={onUpdate} />
 
       <Card className="space-y-3">
         <h3 className="text-sm font-medium text-destructive">危险区域</h3>
@@ -194,30 +194,39 @@ function SettingsTab({ app, onUpdate }: { app: any; onUpdate: () => void }) {
   );
 }
 
-// ==================== Commands Editor ====================
+// ==================== Tools Editor ====================
 
-function CommandsEditor({ app, onUpdate }: { app: any; onUpdate: () => void }) {
-  const [commands, setCommands] = useState<{ name: string; description: string; usage: string }[]>(
-    app.commands || [],
+function ToolsEditor({ app, onUpdate }: { app: any; onUpdate: () => void }) {
+  const [tools, setTools] = useState<{ name: string; description: string; command: string; parameters: string }[]>(
+    (app.tools || []).map((t: any) => ({
+      ...t,
+      parameters: t.parameters ? JSON.stringify(t.parameters, null, 2) : "",
+    })),
   );
   const [saving, setSaving] = useState(false);
 
-  function addCommand() {
-    setCommands([...commands, { name: "", description: "", usage: "" }]);
+  function addTool() {
+    setTools([...tools, { name: "", description: "", command: "", parameters: "" }]);
   }
 
-  function removeCommand(index: number) {
-    setCommands(commands.filter((_, i) => i !== index));
+  function removeTool(index: number) {
+    setTools(tools.filter((_, i) => i !== index));
   }
 
-  function updateCommand(index: number, field: string, value: string) {
-    setCommands(commands.map((c, i) => (i === index ? { ...c, [field]: value } : c)));
+  function updateTool(index: number, field: string, value: string) {
+    setTools(tools.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
   }
 
   async function handleSave() {
     setSaving(true);
     try {
-      await api.updateApp(app.id, { commands });
+      const payload = tools.map((t) => {
+        const tool: any = { name: t.name, description: t.description };
+        if (t.command) tool.command = t.command.replace(/^\//, "");
+        if (t.parameters?.trim()) tool.parameters = JSON.parse(t.parameters);
+        return tool;
+      });
+      await api.updateApp(app.id, { tools: payload });
       onUpdate();
     } catch {}
     setSaving(false);
@@ -226,42 +235,53 @@ function CommandsEditor({ app, onUpdate }: { app: any; onUpdate: () => void }) {
   return (
     <Card className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">命令</h3>
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={addCommand}>
-          <Plus className="w-3 h-3 mr-1" /> 添加命令
+        <h3 className="text-sm font-medium">工具 (Tools)</h3>
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={addTool}>
+          <Plus className="w-3 h-3 mr-1" /> 添加工具
         </Button>
       </div>
-      {commands.length === 0 && <p className="text-xs text-muted-foreground">暂无命令</p>}
-      {commands.map((cmd, i) => (
+      {tools.length === 0 && (
+        <p className="text-xs text-muted-foreground">暂无工具。工具定义了 App 的能力，可被 AI Agent 自动调用。</p>
+      )}
+      {tools.map((tool, i) => (
         <div key={i} className="flex items-start gap-2 p-2 rounded-lg border bg-background">
           <div className="flex-1 space-y-1">
+            <div className="flex gap-1">
+              <Input
+                placeholder="工具名（如 list_prs）"
+                value={tool.name}
+                onChange={(e) => updateTool(i, "name", e.target.value)}
+                className="h-7 text-xs font-mono flex-1"
+              />
+              <Input
+                placeholder="命令触发（如 pr，可选）"
+                value={tool.command}
+                onChange={(e) => updateTool(i, "command", e.target.value)}
+                className="h-7 text-xs font-mono w-36"
+              />
+            </div>
             <Input
-              placeholder="/命令名"
-              value={cmd.name}
-              onChange={(e) => updateCommand(i, "name", e.target.value)}
-              className="h-7 text-xs font-mono"
-            />
-            <Input
-              placeholder="描述"
-              value={cmd.description}
-              onChange={(e) => updateCommand(i, "description", e.target.value)}
+              placeholder="描述（AI Agent 用来判断何时调用）"
+              value={tool.description}
+              onChange={(e) => updateTool(i, "description", e.target.value)}
               className="h-7 text-xs"
             />
-            <Input
-              placeholder="用法示例"
-              value={cmd.usage}
-              onChange={(e) => updateCommand(i, "usage", e.target.value)}
-              className="h-7 text-xs"
+            <textarea
+              placeholder='参数 JSON Schema（可选）\n{"type":"object","properties":{"repo":{"type":"string"}}}'
+              value={tool.parameters}
+              onChange={(e) => updateTool(i, "parameters", e.target.value)}
+              rows={2}
+              className="w-full rounded-md border border-input bg-transparent px-2 py-1 text-[11px] font-mono placeholder:text-muted-foreground/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 resize-none"
             />
           </div>
-          <button onClick={() => removeCommand(i)} className="cursor-pointer mt-1">
+          <button onClick={() => removeTool(i)} className="cursor-pointer mt-1">
             <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </button>
         </div>
       ))}
-      {commands.length > 0 && (
+      {tools.length > 0 && (
         <Button size="sm" onClick={handleSave} disabled={saving}>
-          {saving ? "..." : "保存命令"}
+          {saving ? "..." : "保存工具"}
         </Button>
       )}
     </Card>

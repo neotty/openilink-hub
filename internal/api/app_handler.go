@@ -32,7 +32,7 @@ func (s *Server) handleCreateApp(w http.ResponseWriter, r *http.Request) {
 		Description string          `json:"description"`
 		Icon        string          `json:"icon"`
 		Homepage    string          `json:"homepage"`
-		Commands    json.RawMessage `json:"commands"`
+		Tools       json.RawMessage `json:"tools"`
 		Events      json.RawMessage `json:"events"`
 		Scopes      json.RawMessage `json:"scopes"`
 	}
@@ -65,7 +65,7 @@ func (s *Server) handleCreateApp(w http.ResponseWriter, r *http.Request) {
 		Description: req.Description,
 		Icon:        req.Icon,
 		Homepage:    req.Homepage,
-		Commands:    req.Commands,
+		Tools:       req.Tools,
 		Events:      req.Events,
 		Scopes:      req.Scopes,
 	})
@@ -146,7 +146,7 @@ func (s *Server) handleUpdateApp(w http.ResponseWriter, r *http.Request) {
 		Homepage    string          `json:"homepage"`
 		SetupURL    string          `json:"setup_url"`
 		RedirectURL string          `json:"redirect_url"`
-		Commands    json.RawMessage `json:"commands"`
+		Tools       json.RawMessage `json:"tools"`
 		Events      json.RawMessage `json:"events"`
 		Scopes      json.RawMessage `json:"scopes"`
 	}
@@ -179,9 +179,9 @@ func (s *Server) handleUpdateApp(w http.ResponseWriter, r *http.Request) {
 	if req.RedirectURL != "" {
 		redirectURL = req.RedirectURL
 	}
-	commands := app.Commands
-	if req.Commands != nil {
-		commands = req.Commands
+	tools := app.Tools
+	if req.Tools != nil {
+		tools = req.Tools
 	}
 	events := app.Events
 	if req.Events != nil {
@@ -192,7 +192,7 @@ func (s *Server) handleUpdateApp(w http.ResponseWriter, r *http.Request) {
 		scopes = req.Scopes
 	}
 
-	if err := s.DB.UpdateApp(appID, name, description, icon, homepage, setupURL, redirectURL, commands, events, scopes); err != nil {
+	if err := s.DB.UpdateApp(appID, name, description, icon, homepage, setupURL, redirectURL, tools, events, scopes); err != nil {
 		jsonError(w, "update failed", http.StatusInternalServerError)
 		return
 	}

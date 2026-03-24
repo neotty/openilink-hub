@@ -95,11 +95,11 @@ function MarketplaceTab() {
                 <Download className="w-3.5 h-3.5 mr-1" /> 安装
               </Button>
             </div>
-            {app.commands?.length > 0 && (
+            {app.tools?.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {app.commands.map((cmd: any) => (
-                  <Badge key={cmd.name || cmd} variant="outline" className="text-xs font-mono">
-                    /{(typeof cmd === "string" ? cmd : cmd.name).replace(/^\//, "")}
+                {app.tools.map((tool: any) => (
+                  <Badge key={tool.name} variant="outline" className="text-xs font-mono">
+                    {tool.command ? `/${tool.command}` : tool.name}
                   </Badge>
                 ))}
               </div>
@@ -155,9 +155,8 @@ function InstallModal({ app, onClose }: { app: any; onClose: () => void }) {
     setError("");
     try {
       await api.installApp(app.id, { bot_id: botId, handle: handle.trim() || undefined });
-      const firstCmd = app.commands?.[0];
-      const rawName = firstCmd ? (typeof firstCmd === "string" ? firstCmd : firstCmd.name) : undefined;
-      const cmdName = rawName ? "/" + rawName.replace(/^\//, "") : undefined;
+      const firstTool = app.tools?.find((t: any) => t.command);
+      const cmdName = firstTool?.command ? `/${firstTool.command}` : undefined;
       setSuccess({ handle: handle.trim(), command: cmdName });
     } catch (err: any) {
       setError(err.message);
@@ -396,8 +395,8 @@ function MyAppsTab() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {app.commands?.length > 0 && (
-              <span className="text-xs text-muted-foreground">{app.commands.length} 个命令</span>
+            {app.tools?.length > 0 && (
+              <span className="text-xs text-muted-foreground">{app.tools.length} 个工具</span>
             )}
             <Badge variant={app.status === "active" ? "default" : "outline"}>
               {app.status === "active" ? "启用" : app.status || "草稿"}

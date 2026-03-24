@@ -163,23 +163,24 @@ func parseCommand(content string) (string, string) {
 	return command, args
 }
 
-// appHasCommand checks whether an app has a command with the given name registered.
+// appHasCommand checks whether an app has a tool with a matching Command trigger.
 func appHasCommand(app *database.App, commandName string) bool {
-	if app == nil || len(app.Commands) == 0 {
+	if app == nil || len(app.Tools) == 0 {
 		return false
 	}
 
-	var commands []database.AppCommand
-	if err := json.Unmarshal(app.Commands, &commands); err != nil {
-		slog.Error("failed to unmarshal app commands",
+	var tools []database.AppTool
+	if err := json.Unmarshal(app.Tools, &tools); err != nil {
+		slog.Error("failed to unmarshal app tools",
 			"app_id", app.ID, "err", err)
 		return false
 	}
 
-	for _, cmd := range commands {
-		// Compare with or without leading "/" prefix
-		name := strings.TrimPrefix(strings.ToLower(cmd.Name), "/")
-		if name == strings.ToLower(commandName) {
+	for _, tool := range tools {
+		if tool.Command == "" {
+			continue
+		}
+		if strings.ToLower(tool.Command) == strings.ToLower(commandName) {
 			return true
 		}
 	}

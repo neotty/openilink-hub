@@ -106,11 +106,12 @@ func TestParseCommandMentionFormats(t *testing.T) {
 // --- appHasCommand tests ---
 
 func TestAppHasCommand(t *testing.T) {
-	cmds, _ := json.Marshal([]database.AppCommand{
-		{Name: "github"},
-		{Name: "Deploy"},
+	tools, _ := json.Marshal([]database.AppTool{
+		{Name: "list_prs", Command: "github"},
+		{Name: "run_deploy", Command: "Deploy"},
+		{Name: "no_slash_tool", Description: "tool without command trigger"},
 	})
-	app := &database.App{ID: "a1", Commands: cmds}
+	app := &database.App{ID: "a1", Tools: tools}
 
 	if !appHasCommand(app, "github") {
 		t.Error("should match 'github'")
@@ -124,6 +125,9 @@ func TestAppHasCommand(t *testing.T) {
 	if appHasCommand(app, "unknown") {
 		t.Error("should not match 'unknown'")
 	}
+	if appHasCommand(app, "no_slash_tool") {
+		t.Error("should not match tool name when Command is empty")
+	}
 }
 
 func TestAppHasCommand_NilApp(t *testing.T) {
@@ -132,15 +136,15 @@ func TestAppHasCommand_NilApp(t *testing.T) {
 	}
 }
 
-func TestAppHasCommand_EmptyCommands(t *testing.T) {
-	app := &database.App{Commands: nil}
+func TestAppHasCommand_EmptyTools(t *testing.T) {
+	app := &database.App{Tools: nil}
 	if appHasCommand(app, "cmd") {
-		t.Error("nil commands should return false")
+		t.Error("nil tools should return false")
 	}
 }
 
 func TestAppHasCommand_InvalidJSON(t *testing.T) {
-	app := &database.App{Commands: json.RawMessage(`invalid`)}
+	app := &database.App{Tools: json.RawMessage(`invalid`)}
 	if appHasCommand(app, "cmd") {
 		t.Error("invalid JSON should return false")
 	}
@@ -197,13 +201,13 @@ func TestAppSubscribesToEvent_InvalidJSON(t *testing.T) {
 // --- MatchCommand tests ---
 
 func TestMatchCommand_Success(t *testing.T) {
-	cmds, _ := json.Marshal([]database.AppCommand{{Name: "github"}})
+	cmds, _ := json.Marshal([]database.AppTool{{Name: "list_prs", Command: "github"}})
 	store := &mockAppStore{
 		installations: []database.AppInstallation{
 			{ID: "i1", AppID: "a1", BotID: "b1", Enabled: true, RequestURL: "http://example.com"},
 		},
 		apps: map[string]*database.App{
-			"a1": {ID: "a1", Commands: cmds},
+			"a1": {ID: "a1", Tools: cmds},
 		},
 	}
 
@@ -224,13 +228,13 @@ func TestMatchCommand_Success(t *testing.T) {
 }
 
 func TestMatchCommand_NoMatch(t *testing.T) {
-	cmds, _ := json.Marshal([]database.AppCommand{{Name: "github"}})
+	cmds, _ := json.Marshal([]database.AppTool{{Name: "list_prs", Command: "github"}})
 	store := &mockAppStore{
 		installations: []database.AppInstallation{
 			{ID: "i1", AppID: "a1", BotID: "b1", Enabled: true, RequestURL: "http://example.com"},
 		},
 		apps: map[string]*database.App{
-			"a1": {ID: "a1", Commands: cmds},
+			"a1": {ID: "a1", Tools: cmds},
 		},
 	}
 
@@ -245,13 +249,13 @@ func TestMatchCommand_NoMatch(t *testing.T) {
 }
 
 func TestMatchCommand_DisabledInstallation(t *testing.T) {
-	cmds, _ := json.Marshal([]database.AppCommand{{Name: "cmd"}})
+	cmds, _ := json.Marshal([]database.AppTool{{Name: "run_cmd", Command: "cmd"}})
 	store := &mockAppStore{
 		installations: []database.AppInstallation{
 			{ID: "i1", AppID: "a1", BotID: "b1", Enabled: false, RequestURL: "http://example.com"},
 		},
 		apps: map[string]*database.App{
-			"a1": {ID: "a1", Commands: cmds},
+			"a1": {ID: "a1", Tools: cmds},
 		},
 	}
 
@@ -263,13 +267,13 @@ func TestMatchCommand_DisabledInstallation(t *testing.T) {
 }
 
 func TestMatchCommand_NoRequestURL(t *testing.T) {
-	cmds, _ := json.Marshal([]database.AppCommand{{Name: "cmd"}})
+	cmds, _ := json.Marshal([]database.AppTool{{Name: "run_cmd", Command: "cmd"}})
 	store := &mockAppStore{
 		installations: []database.AppInstallation{
 			{ID: "i1", AppID: "a1", BotID: "b1", Enabled: true, RequestURL: ""},
 		},
 		apps: map[string]*database.App{
-			"a1": {ID: "a1", Commands: cmds},
+			"a1": {ID: "a1", Tools: cmds},
 		},
 	}
 

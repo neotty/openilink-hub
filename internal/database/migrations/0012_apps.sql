@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS apps (
     description     TEXT NOT NULL DEFAULT '',
     icon            TEXT NOT NULL DEFAULT '',
     homepage        TEXT NOT NULL DEFAULT '',
-    commands        JSONB NOT NULL DEFAULT '[]',
+    tools           JSONB NOT NULL DEFAULT '[]',
     events          JSONB NOT NULL DEFAULT '[]',
     scopes          JSONB NOT NULL DEFAULT '[]',
     status          TEXT NOT NULL DEFAULT 'active',
