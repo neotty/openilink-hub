@@ -167,6 +167,7 @@ export function BotAppsTab({ botId }: { botId: string }) {
             )}
             <div className="space-y-1 max-h-64 overflow-y-auto">
               {apps.map((app) => {
+                const installCount = installations.filter((i) => i.app_id === app.id).length;
                 return (
                   <div
                     key={app.id}
@@ -175,8 +176,15 @@ export function BotAppsTab({ botId }: { botId: string }) {
                     <div className="flex items-center gap-2 min-w-0">
                       {app.icon && <span>{app.icon}</span>}
                       <div className="min-w-0">
-                        <span className="text-xs font-medium">{app.name}</span>
-                        <span className="text-xs text-muted-foreground ml-1">{app.slug}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-medium">{app.name}</span>
+                          <span className="text-xs text-muted-foreground">{app.slug}</span>
+                          {installCount > 0 && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              已安装 {installCount} 次
+                            </Badge>
+                          )}
+                        </div>
                         {app.description && (
                           <p className="text-xs text-muted-foreground truncate">{app.description}</p>
                         )}
