@@ -1,6 +1,11 @@
 package database
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+)
 
 // Message mirrors WeChat's WeixinMessage structure + Hub operational fields.
 type Message struct {
@@ -167,6 +172,50 @@ func (db *DB) GetLatestContextToken(botID string) string {
 		botID,
 	).Scan(&token)
 	return token
+}
+
+// HasFreshContextToken checks if the bot has a context_token from a message
+// received within the given duration. WeChat context_tokens expire after ~24h.
+func (db *DB) HasFreshContextToken(botID string, maxAge time.Duration) bool {
+	var exists bool
+	db.QueryRow(
+		"SELECT EXISTS(SELECT 1 FROM messages WHERE bot_id = $1 AND context_token != '' AND created_at > NOW() - $2 * INTERVAL '1 second')",
+		botID, int(maxAge.Seconds()),
+	).Scan(&exists)
+	return exists
+}
+
+// BatchHasFreshContextToken checks multiple bots at once, returning a set of bot IDs that have fresh tokens.
+func (db *DB) BatchHasFreshContextToken(botIDs []string, maxAge time.Duration) map[string]bool {
+	if len(botIDs) == 0 {
+		return map[string]bool{}
+	}
+	result := make(map[string]bool, len(botIDs))
+	secs := int(maxAge.Seconds())
+
+	// Build placeholders: $2, $3, ...
+	placeholders := make([]string, len(botIDs))
+	args := make([]any, 0, len(botIDs)+1)
+	args = append(args, secs)
+	for i, id := range botIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+2)
+		args = append(args, id)
+	}
+
+	rows, err := db.Query(
+		"SELECT DISTINCT bot_id FROM messages WHERE bot_id IN ("+strings.Join(placeholders, ",")+") AND context_token != '' AND created_at > NOW() - $1 * INTERVAL '1 second'",
+		args...,
+	)
+	if err != nil {
+		return result
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		rows.Scan(&id)
+		result[id] = true
+	}
+	return result
 }
 
 // UpdateMediaStatus updates media_status and media_keys for all downloading messages of a bot.

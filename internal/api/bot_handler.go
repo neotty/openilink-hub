@@ -26,25 +26,36 @@ func (s *Server) handleListBots(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type botResp struct {
-		ID            string          `json:"id"`
-		Name          string          `json:"name"`
-		Provider      string          `json:"provider"`
-		Status        string          `json:"status"`
-		MsgCount      int64           `json:"msg_count"`
-		ReminderHours int             `json:"reminder_hours"`
-		CreatedAt     int64           `json:"created_at"`
-		Extra         json.RawMessage `json:"extra,omitempty"`
+		ID                 string          `json:"id"`
+		Name               string          `json:"name"`
+		Provider           string          `json:"provider"`
+		Status             string          `json:"status"`
+		CanSend            bool            `json:"can_send"`
+		SendDisabledReason string          `json:"send_disabled_reason,omitempty"`
+		MsgCount           int64           `json:"msg_count"`
+		ReminderHours      int             `json:"reminder_hours"`
+		CreatedAt          int64           `json:"created_at"`
+		Extra              json.RawMessage `json:"extra,omitempty"`
 	}
+	// Batch check context_token freshness to avoid N+1 queries
+	botIDs := make([]string, len(bots))
+	for i, b := range bots {
+		botIDs[i] = b.ID
+	}
+	freshTokens := s.DB.BatchHasFreshContextToken(botIDs, contextTokenMaxAge)
+
 	var result []botResp
 	for _, b := range bots {
 		status := b.Status
 		if inst, ok := s.BotManager.GetInstance(b.ID); ok {
 			status = inst.Status()
 		}
+		canSend, reason := checkSendStatus(status, freshTokens[b.ID])
 		extra := extractPublicCredentials(b.Provider, b.Credentials)
 		result = append(result, botResp{
 			ID: b.ID, Name: b.Name, Provider: b.Provider,
-			Status: status, MsgCount: b.MsgCount, ReminderHours: b.ReminderHours,
+			Status: status, CanSend: canSend, SendDisabledReason: reason,
+			MsgCount: b.MsgCount, ReminderHours: b.ReminderHours,
 			CreatedAt: b.CreatedAt, Extra: extra,
 		})
 	}
@@ -68,6 +79,28 @@ func extractPublicCredentials(prov string, creds json.RawMessage) json.RawMessag
 		return data
 	}
 	return nil
+}
+
+const contextTokenMaxAge = 24 * time.Hour
+
+// checkSendStatus is a pure function that determines send capability from pre-fetched data.
+func checkSendStatus(status string, hasFreshToken bool) (bool, string) {
+	if status == "session_expired" {
+		return false, "会话已过期，请重新扫码绑定"
+	}
+	if status != "connected" {
+		return false, "Bot 未连接"
+	}
+	if !hasFreshToken {
+		return false, "暂无法发送：需要先收到用户消息"
+	}
+	return true, ""
+}
+
+// checkSendability queries the DB and returns send capability for a single bot.
+func (s *Server) checkSendability(botID, status string) (bool, string) {
+	hasFresh := s.DB.HasFreshContextToken(botID, contextTokenMaxAge)
+	return checkSendStatus(status, hasFresh)
 }
 
 func (s *Server) handleBindStart(w http.ResponseWriter, r *http.Request) {
@@ -336,10 +369,16 @@ func (s *Server) handleBotSend(w http.ResponseWriter, r *http.Request) {
 	inst, ok := s.BotManager.GetInstance(botID)
 	if !ok {
 		if bot.Status == "session_expired" {
-			jsonError(w, "session expired", http.StatusConflict)
+			jsonError(w, "会话已过期，请重新扫码绑定", http.StatusConflict)
 		} else {
-			jsonError(w, "bot not connected", http.StatusServiceUnavailable)
+			jsonError(w, "Bot 未连接", http.StatusServiceUnavailable)
 		}
+		return
+	}
+
+	canSend, reason := s.checkSendability(botID, inst.Status())
+	if !canSend {
+		jsonError(w, reason, http.StatusConflict)
 		return
 	}
 

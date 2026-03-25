@@ -83,12 +83,25 @@ func (s *Server) handleListMessages(w http.ResponseWriter, r *http.Request) {
 		nextCursor = encodeMsgCursor(msgs[len(msgs)-1].ID)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]any{
+	// Include send capability so the chat panel can update without extra requests
+	status := bot.Status
+	if inst, ok := s.BotManager.GetInstance(botID); ok {
+		status = inst.Status()
+	}
+	canSend, sendReason := s.checkSendability(botID, status)
+
+	resp := map[string]any{
 		"messages":    msgs,
 		"next_cursor": nextCursor,
 		"has_more":    hasMore,
-	})
+		"can_send":    canSend,
+	}
+	if sendReason != "" {
+		resp["send_disabled_reason"] = sendReason
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
 func encodeMsgCursor(id int64) string {
