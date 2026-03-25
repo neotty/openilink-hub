@@ -176,7 +176,7 @@ export function BotsPage() {
               <p className="text-muted-foreground mt-2 max-w-sm">
                 添加你的第一个微信账号。
               </p>
-              <Button variant="outline" className="mt-8 h-11 px-8 rounded-full" onClick={() => setBinding(true)}>
+              <Button variant="outline" className="mt-8 h-11 px-8 rounded-full" onClick={() => { setBinding(true); startBind(); }}>
                 添加账号
               </Button>
             </div>

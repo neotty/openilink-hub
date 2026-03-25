@@ -146,6 +146,7 @@ export function BotTracesTab({ botId }: { botId: string }) {
 
   async function handleRowClick(traceId: string) {
     setSelectedTraceId(traceId);
+    setTraceSpans([]);
     setTraceLoading(true);
     try {
       const spans = await api.getTrace(botId, traceId);
