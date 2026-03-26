@@ -832,7 +832,9 @@ func TestAppAPI_RequestListingValidation(t *testing.T) {
 		}
 	})
 
-	t.Run("unverified webhook rejected", func(t *testing.T) {
+	t.Run("unverified webhook allowed", func(t *testing.T) {
+		// Webhook verification is no longer required for listing —
+		// apps with OAuth/PKCE don't need it, and verification can happen post-listing.
 		tools, _ := json.Marshal([]map[string]string{{"name": "ping", "description": "ping"}})
 		scopes, _ := json.Marshal([]string{"message:write"})
 		app, _ := env.store.CreateApp(&store.App{
@@ -851,8 +853,8 @@ func TestAppAPI_RequestListingValidation(t *testing.T) {
 			withCookie(env.cookie))
 		defer resp.Body.Close()
 
-		if resp.StatusCode != http.StatusBadRequest {
-			t.Fatalf("expected 400 for unverified webhook, got %d", resp.StatusCode)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("expected 200 for unverified webhook, got %d", resp.StatusCode)
 		}
 	})
 }

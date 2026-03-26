@@ -333,11 +333,9 @@ func (s *Server) handleRequestListing(w http.ResponseWriter, r *http.Request) {
 	if app.Version == "" {
 		errors = append(errors, "version is required")
 	}
-	if app.WebhookURL == "" && app.Registry != "builtin" {
-		errors = append(errors, "webhook_url is required (set and verify it first)")
-	}
-	if app.WebhookURL != "" && !app.WebhookVerified {
-		errors = append(errors, "webhook_url must be verified before listing")
+	// Apps need at least one way to receive events: webhook_url or OAuth (setup_url for WS/PKCE)
+	if app.WebhookURL == "" && app.OAuthSetupURL == "" && app.Registry != "builtin" {
+		errors = append(errors, "webhook_url or oauth_setup_url is required")
 	}
 	// Must have events or tools.
 	hasEvents := len(app.Events) > 0 && string(app.Events) != "[]" && string(app.Events) != "null"
