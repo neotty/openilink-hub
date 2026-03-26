@@ -94,7 +94,7 @@ jobs:
       - name: Install cross-compilation toolchains
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-mingw-w64-x86-64
+          sudo apt-get install -y gcc-mingw-w64-x86-64
 
       - name: Login to GHCR
         uses: docker/login-action@v4

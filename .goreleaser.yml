@@ -20,15 +20,6 @@ builds:
       - -X main.commit={{.ShortCommit}}
       - -X main.date={{.Date}}
 
-  - id: linux-arm64
-    binary: openilink-hub
-    goos: [linux]
-    goarch: [arm64]
-    env:
-      - CGO_ENABLED=1
-      - CC=aarch64-linux-gnu-gcc
-    ldflags: *ldflags
-
   - id: windows-amd64
     binary: openilink-hub
     goos: [windows]
@@ -77,20 +68,10 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
     ids: [linux-amd64]
-  - image_templates:
-      - "ghcr.io/openilink/openilink-hub:{{ .Version }}-arm64"
-    use: buildx
-    dockerfile: Dockerfile.release
-    build_flag_templates:
-      - "--platform=linux/arm64"
-    ids: [linux-arm64]
-
 docker_manifests:
   - name_template: "ghcr.io/openilink/openilink-hub:{{ .Version }}"
     image_templates:
       - "ghcr.io/openilink/openilink-hub:{{ .Version }}-amd64"
-      - "ghcr.io/openilink/openilink-hub:{{ .Version }}-arm64"
   - name_template: "ghcr.io/openilink/openilink-hub:latest"
     image_templates:
       - "ghcr.io/openilink/openilink-hub:{{ .Version }}-amd64"
-      - "ghcr.io/openilink/openilink-hub:{{ .Version }}-arm64"
