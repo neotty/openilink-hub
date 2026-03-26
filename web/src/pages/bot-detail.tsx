@@ -76,6 +76,7 @@ export function BotDetailPage() {
   const [bot, setBot] = useState<any>(null);
   const [channels, setChannels] = useState<any[]>([]);
   const [installations, setInstallations] = useState<any[]>([]);
+  const [builtinApps, setBuiltinApps] = useState<any[]>([]);
   const [marketplaceApps, setMarketplaceApps] = useState<any[]>([]);
   const [marketplaceLoading, setMarketplaceLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -106,9 +107,12 @@ export function BotDetailPage() {
   const loadMarketplace = useCallback(async () => {
     setMarketplaceLoading(true);
     try {
-      setMarketplaceApps((await api.getMarketplace()) || []);
-    } catch {
-      setMarketplaceApps([]);
+      const [builtin, marketplace] = await Promise.all([
+        api.getBuiltinApps().catch(() => []),
+        api.getMarketplaceApps().catch(() => []),
+      ]);
+      setBuiltinApps(builtin || []);
+      setMarketplaceApps(marketplace || []);
     } finally {
       setMarketplaceLoading(false);
     }
@@ -345,11 +349,11 @@ export function BotDetailPage() {
         </div>
 
         {/* Builtin Apps */}
-        {!marketplaceLoading && marketplaceApps.filter((a: any) => a.registry === "builtin").length > 0 && (
+        {!marketplaceLoading && builtinApps.length > 0 && (
           <div className="space-y-3">
             <h4 className="text-xs font-medium text-muted-foreground">内置应用</h4>
             <div className="grid gap-4 md:grid-cols-3">
-              {marketplaceApps.filter((a: any) => a.registry === "builtin").map((app: any) => (
+              {builtinApps.map((app: any) => (
                 <Card key={app.slug || app.id} className="group relative overflow-hidden rounded-2xl border-border/50 bg-card/50 transition-all hover:shadow-xl hover:-translate-y-0.5">
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
@@ -378,14 +382,14 @@ export function BotDetailPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map(i => <Card key={i} className="h-48 animate-pulse bg-muted/20 rounded-3xl" />)}
             </div>
-          ) : marketplaceApps.filter((a: any) => a.registry !== "builtin").length === 0 ? (
+          ) : marketplaceApps.length === 0 ? (
             <div className="text-center py-12 space-y-3 border-2 border-dashed rounded-2xl">
               <Blocks className="w-10 h-10 mx-auto text-muted-foreground/40" />
               <p className="text-sm text-muted-foreground">市场暂无应用</p>
             </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {marketplaceApps.filter((a: any) => a.registry !== "builtin").map((app) => (
+              {marketplaceApps.map((app) => (
                 <Card key={app.slug || app.id} className="group relative overflow-hidden rounded-[2rem] border-border/50 bg-card/50 transition-all hover:shadow-2xl hover:-translate-y-1">
                   <CardHeader className="pb-4">
                     <div className="flex items-start gap-4">

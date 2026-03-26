@@ -102,7 +102,7 @@ function MarketplaceTab() {
 
   useEffect(() => {
     setLoading(true);
-    api.getMarketplace().then(l => setMarketplaceApps(l || [])).catch(() => setMarketplaceApps([])).finally(() => setLoading(false));
+    api.getMarketplaceApps().then(l => setMarketplaceApps(l || [])).catch(() => setMarketplaceApps([])).finally(() => setLoading(false));
   }, []);
 
   const filteredApps = marketplaceApps.filter(a =>

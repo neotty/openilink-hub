@@ -176,7 +176,8 @@ export const api = {
     ),
 
   // Marketplace
-  getMarketplace: () => request<any[]>("/api/marketplace"),
+  getMarketplaceApps: () => request<any[]>("/api/marketplace"),
+  getBuiltinApps: () => request<any[]>("/api/marketplace/builtin"),
   syncMarketplaceApp: (slug: string) => request<any>(`/api/marketplace/sync/${slug}`, { method: "POST" }),
 
   // Registry admin

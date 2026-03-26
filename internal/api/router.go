@@ -178,6 +178,7 @@ func (s *Server) Handler() http.Handler {
 
 	// --- Marketplace ---
 	protected.HandleFunc("GET /api/marketplace", s.handleMarketplace)
+	protected.HandleFunc("GET /api/marketplace/builtin", s.handleBuiltinApps)
 	protected.HandleFunc("POST /api/marketplace/sync/{slug}", s.handleMarketplaceSync)
 
 	// --- Webhook plugins (authenticated actions) ---

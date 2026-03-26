@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/openilink/openilink-hub/internal/registry"
+	"github.com/openilink/openilink-hub/internal/store"
 )
 
 // GET /api/marketplace — list all available apps from registries, merged with local installs
@@ -62,6 +63,26 @@ func (s *Server) handleMarketplace(w http.ResponseWriter, r *http.Request) {
 		result = []marketplaceEntry{}
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// GET /api/marketplace/builtin — list all builtin apps
+func (s *Server) handleBuiltinApps(w http.ResponseWriter, r *http.Request) {
+	apps, err := s.Store.ListMarketplaceApps()
+	if err != nil {
+		jsonError(w, "list failed", http.StatusInternalServerError)
+		return
+	}
+	var result []store.App
+	for _, a := range apps {
+		if a.Registry == "builtin" {
+			result = append(result, a)
+		}
+	}
+	if result == nil {
+		result = []store.App{}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }
