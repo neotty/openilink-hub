@@ -1,22 +1,22 @@
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
+import logoBlack from "@/assets/logo-black.svg";
+import logoWhite from "@/assets/logo-white.svg";
+import iconBlack from "@/assets/icon-black.svg";
+import iconWhite from "@/assets/icon-white.svg";
 import {
   LogOut,
   Github,
   Bot,
   ShieldCheck,
-  Blocks,
   Sun,
   Moon,
   ChevronsUpDown,
-  Cpu,
   Home,
   Zap,
   Settings2,
   Search,
-  Layers,
   MonitorDot,
-  BarChart3,
   Puzzle,
   Circle,
 } from "lucide-react";
@@ -40,6 +40,7 @@ import {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -61,6 +62,17 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import * as React from "react";
 
+function SidebarLogo() {
+  const { open } = useSidebar();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+  return open ? (
+    <img src={isDark ? logoWhite : logoBlack} alt="OpeniLink" className="h-7 w-auto" />
+  ) : (
+    <img src={isDark ? iconWhite : iconBlack} alt="OpeniLink" className="size-7" />
+  );
+}
+
 const statusColors: Record<string, string> = {
   connected: "text-green-500 fill-green-500",
   disconnected: "text-muted-foreground fill-muted-foreground",
@@ -76,17 +88,27 @@ export function Layout() {
   const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
-    api.me().then(setUser).catch(() => navigate("/login", { replace: true }));
+    api
+      .me()
+      .then(setUser)
+      .catch(() => navigate("/login", { replace: true }));
   }, []);
 
   useEffect(() => {
-    if (user) api.listBots().then(b => setBots(b || [])).catch(() => {});
+    if (user)
+      api
+        .listBots()
+        .then((b) => setBots(b || []))
+        .catch(() => {});
   }, [user]);
 
   // Refresh bot list when navigating back to accounts area
   useEffect(() => {
     if (user && location.pathname.startsWith("/dashboard/accounts")) {
-      api.listBots().then(b => setBots(b || [])).catch(() => {});
+      api
+        .listBots()
+        .then((b) => setBots(b || []))
+        .catch(() => {});
     }
   }, [location.pathname]);
 
@@ -102,13 +124,20 @@ export function Layout() {
   const breadcrumbs = pathSegments.map((segment: string, index: number) => {
     const path = `/${pathSegments.slice(0, index + 1).join("/")}`;
     const labels: Record<string, string> = {
-      dashboard: "控制台", accounts: "账号管理",
-      apps: "应用", overview: "概览",
-      marketplace: "市场", my: "我的",
+      dashboard: "控制台",
+      accounts: "账号管理",
+      apps: "应用",
+      overview: "概览",
+      marketplace: "市场",
+      my: "我的",
       settings: "设置",
-      profile: "个人资料", security: "安全",
-      admin: "系统管理", users: "用户管理", reviews: "审核中心",
-      channels: "转发规则", traces: "消息追踪",
+      profile: "个人资料",
+      security: "安全",
+      admin: "系统管理",
+      users: "用户管理",
+      reviews: "审核中心",
+      channels: "转发规则",
+      traces: "消息追踪",
     };
     let label = labels[segment] || segment;
     if (segment.length > 20) label = "详情"; // Handle IDs
@@ -123,12 +152,7 @@ export function Layout() {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <Link to="/dashboard/overview">
-                  <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-                    <Cpu className="size-5" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight ml-1">
-                    <span className="truncate font-bold text-base tracking-tight text-foreground">OpeniLink</span>
-                  </div>
+                  <SidebarLogo />
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -141,8 +165,15 @@ export function Layout() {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.pathname === "/dashboard/overview"} tooltip="概览">
-                    <Link to="/dashboard/overview"><MonitorDot /><span>概览</span></Link>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === "/dashboard/overview"}
+                    tooltip="概览"
+                  >
+                    <Link to="/dashboard/overview">
+                      <MonitorDot />
+                      <span>概览</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -160,15 +191,25 @@ export function Layout() {
                   </SidebarMenuButton>
                   <SidebarMenuSub>
                     <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild size="sm" isActive={location.pathname === "/dashboard/accounts"}>
+                      <SidebarMenuSubButton
+                        asChild
+                        size="sm"
+                        isActive={location.pathname === "/dashboard/accounts"}
+                      >
                         <Link to="/dashboard/accounts">全部账号</Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                     {bots.map((b) => (
                       <SidebarMenuSubItem key={b.id}>
-                        <SidebarMenuSubButton asChild size="sm" isActive={isActive(`/dashboard/accounts/${b.id}`)}>
+                        <SidebarMenuSubButton
+                          asChild
+                          size="sm"
+                          isActive={isActive(`/dashboard/accounts/${b.id}`)}
+                        >
                           <Link to={`/dashboard/accounts/${b.id}`}>
-                            <Circle className={`size-2 ${statusColors[b.status] || "text-muted-foreground"}`} />
+                            <Circle
+                              className={`size-2 ${statusColors[b.status] || "text-muted-foreground"}`}
+                            />
                             <span className="truncate">{b.name}</span>
                           </Link>
                         </SidebarMenuSubButton>
@@ -191,12 +232,22 @@ export function Layout() {
                   </SidebarMenuButton>
                   <SidebarMenuSub>
                     <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild size="sm" isActive={isActive("/dashboard/apps/marketplace")}>
+                      <SidebarMenuSubButton
+                        asChild
+                        size="sm"
+                        isActive={isActive("/dashboard/apps/marketplace")}
+                      >
                         <Link to="/dashboard/apps/marketplace">应用市场</Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                     <SidebarMenuSubItem>
-                      <SidebarMenuSubButton asChild size="sm" isActive={isActive("/dashboard/apps/my") || location.pathname === "/dashboard/apps"}>
+                      <SidebarMenuSubButton
+                        asChild
+                        size="sm"
+                        isActive={
+                          isActive("/dashboard/apps/my") || location.pathname === "/dashboard/apps"
+                        }
+                      >
                         <Link to="/dashboard/apps/my">我的应用</Link>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
@@ -218,17 +269,29 @@ export function Layout() {
                     </SidebarMenuButton>
                     <SidebarMenuSub>
                       <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild size="sm" isActive={location.pathname === "/dashboard/admin/overview"}>
+                        <SidebarMenuSubButton
+                          asChild
+                          size="sm"
+                          isActive={location.pathname === "/dashboard/admin/overview"}
+                        >
                           <Link to="/dashboard/admin/overview">系统概览</Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild size="sm" isActive={isActive("/dashboard/admin/users")}>
+                        <SidebarMenuSubButton
+                          asChild
+                          size="sm"
+                          isActive={isActive("/dashboard/admin/users")}
+                        >
                           <Link to="/dashboard/admin/users">用户管理</Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild size="sm" isActive={isActive("/dashboard/admin/reviews")}>
+                        <SidebarMenuSubButton
+                          asChild
+                          size="sm"
+                          isActive={isActive("/dashboard/admin/reviews")}
+                        >
                           <Link to="/dashboard/admin/reviews">审核中心</Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
@@ -243,15 +306,25 @@ export function Layout() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={isActive("/dashboard/settings")} tooltip="个人设置">
-                <Link to="/dashboard/settings/profile"><Settings2 /><span>偏好设置</span></Link>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive("/dashboard/settings")}
+                tooltip="个人设置"
+              >
+                <Link to="/dashboard/settings/profile">
+                  <Settings2 />
+                  <span>偏好设置</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarSeparator className="mx-0" />
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
                     <Avatar className="h-8 w-8 rounded-lg shadow-sm border border-border/50">
                       <AvatarFallback className="rounded-lg bg-primary/10 text-primary font-bold text-xs">
                         {user.username.charAt(0).toUpperCase()}
@@ -259,16 +332,52 @@ export function Layout() {
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight ml-1">
                       <span className="truncate font-semibold">{user.username}</span>
-                      <span className="truncate text-[10px] text-muted-foreground font-medium uppercase">{user.role}</span>
+                      <span className="truncate text-[10px] text-muted-foreground font-medium uppercase">
+                        {user.role}
+                      </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4 opacity-50" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl shadow-2xl" side="top" align="end" sideOffset={8}>
-                  <DropdownMenuItem asChild><a href="https://github.com/openilink/openilink-hub" target="_blank" className="cursor-pointer font-medium"><Github className="mr-2 h-4 w-4" />GitHub 项目</a></DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} className="cursor-pointer font-medium">{resolvedTheme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}切换外观主题</DropdownMenuItem>
+                <DropdownMenuContent
+                  className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-xl shadow-2xl"
+                  side="top"
+                  align="end"
+                  sideOffset={8}
+                >
+                  <DropdownMenuItem asChild>
+                    <a
+                      href="https://github.com/openilink/openilink-hub"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="cursor-pointer font-medium"
+                    >
+                      <Github className="mr-2 h-4 w-4" />
+                      GitHub 项目
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                    className="cursor-pointer font-medium"
+                  >
+                    {resolvedTheme === "dark" ? (
+                      <Sun className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Moon className="mr-2 h-4 w-4" />
+                    )}
+                    切换外观主题
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={async () => { await api.logout(); navigate("/login"); }} className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive"><LogOut className="mr-2 h-4 w-4" />退出登录</DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      await api.logout();
+                      navigate("/login");
+                    }}
+                    className="cursor-pointer font-medium text-destructive focus:bg-destructive/10 focus:text-destructive"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    退出登录
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </SidebarMenuItem>
@@ -277,7 +386,7 @@ export function Layout() {
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset className="flex flex-col bg-background/50">
+      <SidebarInset className="flex flex-col bg-background/50 rounded-tl-2xl overflow-hidden">
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background/95 backdrop-blur px-6 sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <SidebarTrigger className="-ml-2 h-9 w-9" />
@@ -291,15 +400,22 @@ export function Layout() {
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                {breadcrumbs.map((bc, i) => (
+                {breadcrumbs.map((bc, _i) => (
                   <React.Fragment key={bc.path}>
                     <BreadcrumbSeparator className="hidden md:block opacity-30" />
                     <BreadcrumbItem>
                       {bc.isLast ? (
-                        <BreadcrumbPage className="font-bold text-foreground">{bc.label}</BreadcrumbPage>
+                        <BreadcrumbPage className="font-bold text-foreground">
+                          {bc.label}
+                        </BreadcrumbPage>
                       ) : (
                         <BreadcrumbLink asChild>
-                          <Link to={bc.path} className="hover:text-primary transition-colors font-medium">{bc.label}</Link>
+                          <Link
+                            to={bc.path}
+                            className="hover:text-primary transition-colors font-medium"
+                          >
+                            {bc.label}
+                          </Link>
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>
@@ -310,14 +426,18 @@ export function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
-             <div className="hidden lg:flex relative items-center group">
-                <Search className="absolute left-3 size-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <input placeholder="搜索..." className="h-9 w-64 rounded-full bg-muted/50 border-transparent pl-9 pr-4 text-xs font-medium focus:bg-background focus:border-border transition-all outline-none" />
-             </div>
-             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full relative">
-                <Zap className="h-4 w-4 text-yellow-500 fill-yellow-500/20" />
-                <span className="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-background animate-pulse" />
-             </Button>
+            <div className="hidden lg:flex relative items-center group">
+              <Search className="absolute left-3 size-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <input
+                aria-label="搜索"
+                placeholder="搜索..."
+                className="h-9 w-64 rounded-full bg-muted/50 border-transparent pl-9 pr-4 text-xs font-medium focus:bg-background focus:border-border transition-all outline-none"
+              />
+            </div>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full relative">
+              <Zap className="h-4 w-4 text-yellow-500 fill-yellow-500/20" />
+              <span className="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-background animate-pulse" />
+            </Button>
           </div>
         </header>
 

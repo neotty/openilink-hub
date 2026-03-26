@@ -29,3 +29,6 @@ docs/plans/
 # Environment
 .env
 .env.*
+
+# Build output
+dist/
