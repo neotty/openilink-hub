@@ -32,8 +32,8 @@ func (s *Server) handleBotAPISend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check scope
-	if !s.requireScope(inst, "messages.send") {
-		botAPIError(w, "missing scope: messages.send", http.StatusForbidden)
+	if !s.requireScope(inst, "message:write") {
+		botAPIError(w, "missing scope: message:write", http.StatusForbidden)
 		return
 	}
 
@@ -210,8 +210,8 @@ func (s *Server) handleBotAPIContacts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check scope
-	if !s.requireScope(inst, "contacts.read") {
-		botAPIError(w, "missing scope: contacts.read", http.StatusForbidden)
+	if !s.requireScope(inst, "contact:read") {
+		botAPIError(w, "missing scope: contact:read", http.StatusForbidden)
 		return
 	}
 
@@ -238,8 +238,8 @@ func (s *Server) handleBotAPIBotInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check scope
-	if !s.requireScope(inst, "bot.read") {
-		botAPIError(w, "missing scope: bot.read", http.StatusForbidden)
+	if !s.requireScope(inst, "bot:read") {
+		botAPIError(w, "missing scope: bot:read", http.StatusForbidden)
 		return
 	}
 
