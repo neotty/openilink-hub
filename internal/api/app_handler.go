@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -62,6 +63,14 @@ func (s *Server) handleCreateApp(w http.ResponseWriter, r *http.Request) {
 	if existing, _ := s.Store.GetAppBySlug(slug, ""); existing != nil {
 		jsonError(w, "slug already taken", http.StatusConflict)
 		return
+	}
+
+	if req.Homepage != "" {
+		u, err := url.ParseRequestURI(req.Homepage)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+			jsonError(w, "homepage must be a valid http or https URL", http.StatusBadRequest)
+			return
+		}
 	}
 
 	app, err := s.Store.CreateApp(&store.App{
@@ -212,6 +221,13 @@ func (s *Server) handleUpdateApp(w http.ResponseWriter, r *http.Request) {
 	}
 	homepage := app.Homepage
 	if req.Homepage != nil {
+		if *req.Homepage != "" {
+			u, err := url.ParseRequestURI(*req.Homepage)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+				jsonError(w, "homepage must be a valid http or https URL", http.StatusBadRequest)
+				return
+			}
+		}
 		homepage = *req.Homepage
 	}
 	oauthSetupURL := app.OAuthSetupURL
@@ -466,6 +482,37 @@ func (s *Server) requireAppForInstall(w http.ResponseWriter, r *http.Request) *s
 		return nil
 	}
 	return app
+}
+
+// PUT /api/admin/apps/{id}/listing — admin directly sets listing status
+// PUT /api/admin/apps/{id}/listing — admin directly sets listing status (listed/unlisted).
+// This is an admin privilege bypass of the normal review flow, intended for
+// moderation actions (e.g. emergency takedown, re-listing without re-review).
+func (s *Server) handleAdminSetListing(w http.ResponseWriter, r *http.Request) {
+	appID := r.PathValue("id")
+	if _, err := s.Store.GetApp(appID); err != nil {
+		jsonError(w, "app not found", http.StatusNotFound)
+		return
+	}
+	var req struct {
+		Listing string `json:"listing"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	validListings := map[string]bool{"listed": true, "unlisted": true}
+	if !validListings[req.Listing] {
+		jsonError(w, "listing must be 'listed' or 'unlisted'", http.StatusBadRequest)
+		return
+	}
+	if err := s.Store.SetListing(appID, req.Listing); err != nil {
+		slog.Error("set listing failed", "err", err)
+		jsonError(w, "set listing failed", http.StatusInternalServerError)
+		return
+	}
+	slog.Info("admin set listing", "app_id", appID, "listing", req.Listing)
+	jsonOK(w)
 }
 
 // requireInstallation loads an installation by path IID and verifies it belongs to the app
