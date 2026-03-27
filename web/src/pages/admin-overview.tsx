@@ -1,7 +1,18 @@
 import { useEffect, useState } from "react";
-import { BarChart3, Users, Cpu, Globe, Blocks, Database, Settings, Trash2, Plus } from "lucide-react";
+import {
+  BarChart3,
+  Users,
+  Cpu,
+  Globe,
+  Blocks,
+  Database,
+  Settings,
+  Trash2,
+  Plus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -10,8 +21,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+
+const METRIC_CONFIG = [
+  {
+    label: "全站用户",
+    key: "total_users",
+    icon: Users,
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+  },
+  {
+    label: "微信账号",
+    key: "total_bots",
+    icon: Cpu,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
+  {
+    label: "已安装应用",
+    key: "total_installations",
+    icon: Globe,
+    color: "text-violet-500",
+    bg: "bg-violet-500/10",
+  },
+  {
+    label: "活跃 App",
+    key: "total_apps",
+    icon: Blocks,
+    color: "text-orange-500",
+    bg: "bg-orange-500/10",
+  },
+];
 
 function SkeletonCard() {
   return <Card className="h-24 animate-pulse bg-muted/20 border-none" />;
@@ -25,8 +68,14 @@ export function AdminOverviewPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    api.adminStats().then(setStats).finally(() => setLoading(false));
-    api.getAIConfig().then(setAIConfig).catch(() => {});
+    api
+      .adminStats()
+      .then(setStats)
+      .finally(() => setLoading(false));
+    api
+      .getAIConfig()
+      .then(setAIConfig)
+      .catch(() => {});
   }, []);
 
   async function handleSaveAI() {
@@ -41,70 +90,104 @@ export function AdminOverviewPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
-          <BarChart3 className="h-6 w-6" />
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">系统概览</h2>
-          <p className="text-muted-foreground">平台运行状态与配置。</p>
+          <h1 className="text-2xl font-bold tracking-tight">系统概览</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">平台运行状态与配置。</p>
         </div>
       </div>
 
       {loading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          <SkeletonCard /><SkeletonCard /><SkeletonCard /><SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: "全站用户", value: stats?.total_users || 0, icon: Users, color: "text-blue-500" },
-            { label: "微信账号", value: stats?.total_bots || 0, icon: Cpu, color: "text-green-500" },
-            { label: "已安装应用", value: stats?.total_installations || 0, icon: Globe, color: "text-purple-500" },
-            { label: "活跃 App", value: stats?.total_apps || 0, icon: Blocks, color: "text-orange-500" },
-          ].map((m, i) => (
-            <Card key={i} className="border-border/50 bg-card/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{m.label}</CardTitle>
-                <m.icon className={`h-4 w-4 ${m.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black">{m.value}</div>
+          {METRIC_CONFIG.map((m) => (
+            <Card
+              key={m.label}
+              className="border-border/50 bg-card/50 hover:bg-card transition-colors cursor-default"
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div
+                    className={`h-8 w-8 rounded-lg ${m.bg} flex items-center justify-center ${m.color}`}
+                  >
+                    <m.icon className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold tabular-nums">{stats?.[m.key] || 0}</div>
+                <p className="text-xs font-semibold text-foreground/80">{m.label}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      <Card className="border-border/50 bg-card/30 rounded-[2rem]">
-        <CardHeader><CardTitle>系统状态</CardTitle><CardDescription></CardDescription></CardHeader>
+      <Card className="border-border/50 bg-card/30">
+        <CardHeader>
+          <CardTitle>系统状态</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 flex items-center gap-4">
               <Database className="h-5 w-5 text-muted-foreground" />
-              <div><p className="text-xs font-bold uppercase text-muted-foreground">PostgreSQL</p><p className="text-sm font-bold">已连接</p></div>
+              <div>
+                <p className="text-xs font-bold uppercase text-muted-foreground">PostgreSQL</p>
+                <p className="text-sm font-bold">已连接</p>
+              </div>
             </div>
             <div className="p-4 rounded-2xl bg-muted/20 border border-border/50 flex items-center gap-4">
               <Globe className="h-5 w-5 text-muted-foreground" />
-              <div><p className="text-xs font-bold uppercase text-muted-foreground">WASM Runtime</p><p className="text-sm font-bold">就绪</p></div>
+              <div>
+                <p className="text-xs font-bold uppercase text-muted-foreground">WASM Runtime</p>
+                <p className="text-sm font-bold">就绪</p>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       <div className="grid gap-8 md:grid-cols-2">
-        <Card className="border-border/50 bg-card/50 rounded-[2rem]">
+        <Card className="border-border/50 bg-card/50">
           <CardHeader>
             <CardTitle>AI 配置</CardTitle>
             <CardDescription>所有账号的默认 AI 设置。</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1.5"><label className="text-xs font-bold uppercase text-muted-foreground">接口地址</label><Input value={aiConfig?.base_url || ""} onChange={e => setAIConfig({...aiConfig, base_url: e.target.value})} className="rounded-xl h-10" /></div>
-            <div className="space-y-1.5"><label className="text-xs font-bold uppercase text-muted-foreground">默认模型</label><Input value={aiConfig?.model || ""} onChange={e => setAIConfig({...aiConfig, model: e.target.value})} className="rounded-xl h-10" /></div>
-            <div className="space-y-1.5"><label className="text-xs font-bold uppercase text-muted-foreground">API Key</label><Input type="password" value={aiConfig?.api_key || ""} onChange={e => setAIConfig({...aiConfig, api_key: e.target.value})} className="rounded-xl h-10" placeholder="••••••••" /></div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">接口地址</Label>
+              <Input
+                value={aiConfig?.base_url || ""}
+                onChange={(e) => setAIConfig({ ...aiConfig, base_url: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">默认模型</Label>
+              <Input
+                value={aiConfig?.model || ""}
+                onChange={(e) => setAIConfig({ ...aiConfig, model: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase text-muted-foreground">API Key</Label>
+              <Input
+                type="password"
+                value={aiConfig?.api_key || ""}
+                onChange={(e) => setAIConfig({ ...aiConfig, api_key: e.target.value })}
+                placeholder="••••••••"
+              />
+            </div>
           </CardContent>
-          <CardFooter className="bg-muted/30 pt-4 flex justify-end"><Button onClick={handleSaveAI} disabled={saving} className="rounded-full">保存</Button></CardFooter>
+          <CardFooter className="flex justify-end">
+            <Button onClick={handleSaveAI} disabled={saving}>
+              保存
+            </Button>
+          </CardFooter>
         </Card>
 
         <RegistryConfigCard />
@@ -125,8 +208,14 @@ function RegistryConfigCard() {
   const { toast } = useToast();
 
   useEffect(() => {
-    api.getRegistryConfig().then(setRegistryConfig).catch(() => setRegistryConfig({ enabled: "false" }));
-    api.getRegistries().then(r => setRegistries(r || [])).catch(() => {});
+    api
+      .getRegistryConfig()
+      .then(setRegistryConfig)
+      .catch(() => setRegistryConfig({ enabled: "false" }));
+    api
+      .getRegistries()
+      .then((r) => setRegistries(r || []))
+      .catch(() => {});
   }, []);
 
   async function handleToggleExpose() {
@@ -181,7 +270,7 @@ function RegistryConfigCard() {
   }
 
   return (
-    <Card className="border-border/50 bg-card/50 rounded-[2rem]">
+    <Card className="border-border/50 bg-card/50">
       <CardHeader>
         <CardTitle>Registry 配置</CardTitle>
         <CardDescription>管理应用市场 Registry 来源。</CardDescription>
@@ -205,12 +294,17 @@ function RegistryConfigCard() {
 
         {/* Registry Sources */}
         <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Registry 来源</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            Registry 来源
+          </p>
           {registries.length === 0 ? (
             <p className="text-xs text-muted-foreground py-2">暂无 Registry 来源</p>
           ) : (
             registries.map((reg) => (
-              <div key={reg.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-background">
+              <div
+                key={reg.id}
+                className="flex items-center justify-between p-2.5 rounded-lg border bg-background"
+              >
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{reg.name}</p>
                   <p className="text-xs text-muted-foreground font-mono truncate">{reg.url}</p>
@@ -224,15 +318,19 @@ function RegistryConfigCard() {
                   >
                     {reg.enabled ? "启用" : "禁用"}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-destructive"
-                    onClick={() => handleDeleteRegistry(reg)}
-                    aria-label="删除"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteRegistry(reg)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>删除</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             ))
@@ -241,25 +339,26 @@ function RegistryConfigCard() {
 
         {/* Add Registry */}
         <div className="space-y-2 pt-2 border-t">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">添加 Registry</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            添加 Registry
+          </p>
           <div className="flex gap-2">
             <Input
               placeholder="名称"
               value={newName}
-              onChange={e => setNewName(e.target.value)}
-              className="rounded-xl h-9 flex-1"
+              onChange={(e) => setNewName(e.target.value)}
+              className="flex-1"
             />
             <Input
               placeholder="URL"
               value={newUrl}
-              onChange={e => setNewUrl(e.target.value)}
-              className="rounded-xl h-9 flex-[2]"
+              onChange={(e) => setNewUrl(e.target.value)}
+              className="flex-[2]"
             />
             <Button
               size="sm"
               onClick={handleAddRegistry}
               disabled={adding || !newName.trim() || !newUrl.trim()}
-              className="h-9 rounded-xl"
             >
               <Plus className="w-3.5 h-3.5 mr-1" /> 添加
             </Button>

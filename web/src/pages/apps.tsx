@@ -2,28 +2,10 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import {
-  Blocks,
-  Download,
-  Loader2,
-  Search,
-  RefreshCw,
-} from "lucide-react";
+import { Blocks, Download, Loader2, Search, RefreshCw } from "lucide-react";
 import { api } from "../lib/api";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { AppIcon } from "../components/app-icon";
 import { parseTools } from "../components/tools-display";
@@ -55,12 +44,14 @@ export function AppsPage() {
       api.listApps({ listing: "listed" }).catch(() => []),
       api.getMarketplaceApps().catch(() => []),
       api.listBots().catch(() => []),
-    ]).then(([listed, registry, botList]) => {
-      setListedApps(listed || []);
-      setRegistryApps(registry || []);
-      setBots(botList || []);
-      if (botList?.length) setSelectedBotId(botList[0].id);
-    }).finally(() => setLoading(false));
+    ])
+      .then(([listed, registry, botList]) => {
+        setListedApps(listed || []);
+        setRegistryApps(registry || []);
+        setBots(botList || []);
+        if (botList?.length) setSelectedBotId(botList[0].id);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   // Group registry apps by registry_name
@@ -100,48 +91,64 @@ export function AppsPage() {
   function filterApps(apps: any[]) {
     if (!search) return apps;
     const q = search.toLowerCase();
-    return apps.filter(a =>
-      a.name?.toLowerCase().includes(q) || (a.slug || "").toLowerCase().includes(q)
+    return apps.filter(
+      (a) => a.name?.toLowerCase().includes(q) || (a.slug || "").toLowerCase().includes(q),
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
-            <Blocks className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">应用市场</h2>
-            <p className="text-muted-foreground">浏览和安装应用。</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">应用市场</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">浏览和安装应用。</p>
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="搜索应用..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 h-10 rounded-full bg-card shadow-sm border-border/50" aria-label="搜索应用" />
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="搜索应用..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+          aria-label="搜索应用"
+        />
       </div>
 
       {loading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => <Card key={i} className="h-48 animate-pulse bg-muted/20 rounded-3xl" />)}
+        <div className="divide-y divide-border/50 rounded-xl border border-border/50 overflow-hidden">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex items-center gap-4 px-4 py-3.5 animate-pulse">
+              <div className="h-9 w-9 rounded-lg bg-muted shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 w-32 rounded bg-muted" />
+                <div className="h-3 w-48 rounded bg-muted" />
+              </div>
+              <div className="h-7 w-14 rounded-md bg-muted shrink-0" />
+            </div>
+          ))}
         </div>
       ) : showTabs ? (
         <Tabs defaultValue="local">
           <TabsList>
             <TabsTrigger value="local">本站</TabsTrigger>
-            {registryNames.map(name => (
-              <TabsTrigger key={name} value={name}>{name}</TabsTrigger>
+            {registryNames.map((name) => (
+              <TabsTrigger key={name} value={name}>
+                {name}
+              </TabsTrigger>
             ))}
           </TabsList>
           <TabsContent value="local" className="mt-6">
             <AppGrid apps={filterApps(listedApps)} search={search} onInstall={setPendingApp} />
           </TabsContent>
-          {registryNames.map(name => (
+          {registryNames.map((name) => (
             <TabsContent key={name} value={name} className="mt-6">
-              <AppGrid apps={filterApps(registryGroups[name])} search={search} onInstall={setPendingApp} />
+              <AppGrid
+                apps={filterApps(registryGroups[name])}
+                search={search}
+                onInstall={setPendingApp}
+              />
             </TabsContent>
           ))}
         </Tabs>
@@ -159,11 +166,21 @@ export function AppsPage() {
             <p className="text-sm text-muted-foreground py-4">请先创建一个账号。</p>
           ) : (
             <div className="space-y-4 pt-2">
-              <select value={selectedBotId} onChange={e => setSelectedBotId(e.target.value)}
-                className="w-full h-9 px-3 rounded-md border bg-background text-sm">
-                {bots.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-              <Button className="w-full" disabled={syncing} onClick={handleInstallConfirm}>{syncing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}继续安装</Button>
+              <Select value={selectedBotId} onValueChange={setSelectedBotId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="选择账号" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bots.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button className="w-full" disabled={syncing} onClick={handleInstallConfirm}>
+                {syncing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}继续安装
+              </Button>
             </div>
           )}
         </DialogContent>
@@ -174,66 +191,84 @@ export function AppsPage() {
 
 // ==================== App Grid ====================
 
-function AppGrid({ apps, search, onInstall }: { apps: any[]; search: string; onInstall: (app: any) => void }) {
+function AppGrid({
+  apps,
+  search,
+  onInstall,
+}: {
+  apps: any[];
+  search: string;
+  onInstall: (app: any) => void;
+}) {
   if (apps.length === 0) {
     return (
-      <div className="text-center py-16 space-y-3 border-2 border-dashed rounded-2xl">
-        <Blocks className="w-10 h-10 mx-auto text-muted-foreground/40" />
+      <div className="text-center py-16 space-y-3 border-2 border-dashed rounded-xl">
+        <Blocks className="w-8 h-8 mx-auto text-muted-foreground/40" />
         <p className="text-sm text-muted-foreground">{search ? "没有匹配的应用" : "暂无应用"}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="divide-y divide-border/50 rounded-xl border border-border/50 overflow-hidden">
       {apps.map((app) => (
-        <Card key={`${app.registry || "local"}-${app.slug || app.id}`} className="group relative overflow-hidden rounded-2xl border-border/50 bg-card/50 transition-all hover:shadow-2xl hover:-translate-y-1">
-          <CardHeader className="pb-4">
-            <div className="flex items-start gap-4">
-              <AppIcon icon={app.icon} iconUrl={app.icon_url} />
-              <div className="min-w-0 space-y-1 pt-1">
-                <CardTitle className="text-lg font-bold truncate group-hover:text-primary transition-colors">{app.name}</CardTitle>
-                <div className="flex flex-wrap gap-1.5">
-                  {(app.author || app.owner_name) && (
-                    <span className="text-xs text-muted-foreground">{app.author || app.owner_name}</span>
-                  )}
-                  {app.version && (
-                    <Badge variant="outline" className="h-4 font-bold tracking-tighter opacity-60">
-                      v{app.version}
-                    </Badge>
-                  )}
-                  {app.installed && (
-                    <Badge variant="default" className="h-4 font-bold tracking-tighter">
-                      已安装
-                    </Badge>
-                  )}
-                </div>
-              </div>
+        <div
+          key={`${app.registry || "local"}-${app.slug || app.id}`}
+          className="group flex items-center gap-4 px-4 py-3.5 bg-card hover:bg-muted/40 transition-colors"
+        >
+          <AppIcon icon={app.icon} iconUrl={app.icon_url} size="h-9 w-9" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold leading-tight">{app.name}</p>
+              {app.version ? (
+                <Badge variant="outline" className="text-[10px] font-mono shrink-0">
+                  v{app.version}
+                </Badge>
+              ) : null}
+              {app.installed ? (
+                <Badge variant="secondary" className="text-[10px] shrink-0">
+                  已安装
+                </Badge>
+              ) : null}
             </div>
-          </CardHeader>
-          <CardContent className="pb-6">
-            <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 min-h-[2.5rem]">
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
               {app.description || "暂无描述"}
             </p>
-            {parseTools(app.tools).length > 0 && (
-              <span className="text-[10px] text-muted-foreground mt-1 inline-block">{parseTools(app.tools).length} 个命令</span>
-            )}
-          </CardContent>
-          <CardFooter className="bg-muted/30 pt-4 flex justify-between items-center px-6">
-            <span className="text-xs font-bold text-muted-foreground">{app.author || app.owner_name || app.slug}</span>
-            {app.installed && app.update_available ? (
-              <Button size="sm" variant="outline" onClick={() => onInstall(app)} className="h-8 rounded-full px-4 gap-1.5 font-bold text-xs">
-                更新 <RefreshCw className="h-3 w-3" />
-              </Button>
-            ) : app.installed ? (
-              <Badge variant="secondary" className="text-xs">已安装</Badge>
-            ) : (
-              <Button size="sm" onClick={() => onInstall(app)} className="h-8 rounded-full px-4 gap-1.5 font-bold text-xs shadow-lg shadow-primary/10">
-                安装 <Download className="h-3 w-3" />
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+          </div>
+          {app.author || app.owner_name ? (
+            <span className="text-[11px] text-muted-foreground/50 shrink-0 hidden sm:block">
+              {app.author || app.owner_name}
+            </span>
+          ) : null}
+          {parseTools(app.tools).length > 0 ? (
+            <span className="text-[11px] text-muted-foreground/50 shrink-0 hidden md:block">
+              {parseTools(app.tools).length} 个命令
+            </span>
+          ) : null}
+          {app.installed && app.update_available ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1.5"
+              onClick={() => onInstall(app)}
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              更新
+            </Button>
+          ) : app.installed ? (
+            <span className="text-[11px] text-muted-foreground/50 shrink-0">已安装</span>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1.5"
+              onClick={() => onInstall(app)}
+            >
+              <Download className="h-3.5 w-3.5" />
+              安装
+            </Button>
+          )}
+        </div>
       ))}
     </div>
   );
