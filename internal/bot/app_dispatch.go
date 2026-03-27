@@ -63,22 +63,21 @@ func (m *Manager) deliverToApps(inst *Instance, msg provider.InboundMessage, p p
 	event.TraceID = tracer.TraceID()
 
 	for i := range installations {
-		// Builtin apps: route to internal handler instead of webhook delivery
+		// Builtin apps with internal handler: route directly
 		if installations[i].AppRegistry == "builtin" {
-			span := tracer.StartChild(rootSpan, "builtin:"+installations[i].AppSlug, store.SpanKindInternal, map[string]any{
-				"app.name": installations[i].AppName,
-				"app.slug": installations[i].AppSlug,
-			})
 			if h := builtin.Get(installations[i].AppSlug); h != nil {
+				span := tracer.StartChild(rootSpan, "builtin:"+installations[i].AppSlug, store.SpanKindInternal, map[string]any{
+					"app.name": installations[i].AppName,
+					"app.slug": installations[i].AppSlug,
+				})
 				if err := h.HandleEvent(&installations[i], event); err != nil {
 					span.EndWithError(err.Error())
 				} else {
 					span.End()
 				}
-			} else {
-				span.EndWithError("no handler (WIP)")
+				continue
 			}
-			continue
+			// No internal handler — fall through to WebSocket/webhook delivery
 		}
 
 		// Check for active WebSocket connection — deliver via WS if connected
@@ -179,10 +178,13 @@ func (m *Manager) tryDeliverMention(inst *Instance, msg provider.InboundMessage,
 		})
 		event.TraceID = tracer.TraceID()
 
-		// Builtin apps: route to internal handler
+		// Builtin apps with internal handler: route directly
 		if installation.AppRegistry == "builtin" {
-			m.deliverBuiltinMention(inst, installation, event, msg.Sender, tracer, rootSpan)
-			return true
+			if h := builtin.Get(installation.AppSlug); h != nil {
+				m.deliverBuiltinMention(inst, installation, event, msg.Sender, tracer, rootSpan)
+				return true
+			}
+			// No internal handler — fall through to WebSocket/webhook
 		}
 
 		m.deliverToInstallation(inst, installation, event, msg.Sender, tracer, rootSpan)
@@ -195,10 +197,13 @@ func (m *Manager) tryDeliverMention(inst *Instance, msg provider.InboundMessage,
 	})
 	event.TraceID = tracer.TraceID()
 
-	// Builtin apps: route to internal handler
+	// Builtin apps with internal handler: route directly
 	if installation.AppRegistry == "builtin" {
-		m.deliverBuiltinMention(inst, installation, event, msg.Sender, tracer, rootSpan)
-		return true
+		if h := builtin.Get(installation.AppSlug); h != nil {
+			m.deliverBuiltinMention(inst, installation, event, msg.Sender, tracer, rootSpan)
+			return true
+		}
+		// No internal handler — fall through to WebSocket/webhook
 	}
 
 	m.deliverToInstallation(inst, installation, event, msg.Sender, tracer, rootSpan)
@@ -303,22 +308,21 @@ func (m *Manager) tryDeliverCommand(inst *Instance, msg provider.InboundMessage,
 	event.TraceID = tracer.TraceID()
 
 	for i := range installations {
-		// Builtin apps: route to internal handler instead of webhook delivery
+		// Builtin apps with internal handler: route directly
 		if installations[i].AppRegistry == "builtin" {
-			span := tracer.StartChild(rootSpan, "builtin:"+installations[i].AppSlug, store.SpanKindInternal, map[string]any{
-				"app.name": installations[i].AppName,
-				"app.slug": installations[i].AppSlug,
-			})
 			if h := builtin.Get(installations[i].AppSlug); h != nil {
+				span := tracer.StartChild(rootSpan, "builtin:"+installations[i].AppSlug, store.SpanKindInternal, map[string]any{
+					"app.name": installations[i].AppName,
+					"app.slug": installations[i].AppSlug,
+				})
 				if err := h.HandleEvent(&installations[i], event); err != nil {
 					span.EndWithError(err.Error())
 				} else {
 					span.End()
 				}
-			} else {
-				span.EndWithError("no handler (WIP)")
+				continue
 			}
-			continue
+			// No internal handler — fall through to WebSocket/webhook delivery
 		}
 
 		m.deliverToInstallation(inst, &installations[i], event, msg.Sender, tracer, rootSpan)
