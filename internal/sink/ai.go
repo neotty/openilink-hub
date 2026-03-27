@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/openilink/openilink-hub/internal/ai"
@@ -26,6 +27,11 @@ func (s *AI) Name() string { return "ai" }
 
 func (s *AI) Handle(d Delivery) {
 	if !d.AIEnabled || d.MsgType != "text" || d.Content == "" {
+		return
+	}
+	// Skip messages targeted at specific apps (commands and @mentions)
+	trimmed := strings.TrimSpace(d.Content)
+	if strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "@") {
 		return
 	}
 	s.reply(d)
