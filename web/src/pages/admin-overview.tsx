@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -20,8 +21,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+
+const METRIC_CONFIG = [
+  {
+    label: "全站用户",
+    key: "total_users",
+    icon: Users,
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+  },
+  {
+    label: "微信账号",
+    key: "total_bots",
+    icon: Cpu,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+  },
+  {
+    label: "已安装应用",
+    key: "total_installations",
+    icon: Globe,
+    color: "text-violet-500",
+    bg: "bg-violet-500/10",
+  },
+  {
+    label: "活跃 App",
+    key: "total_apps",
+    icon: Blocks,
+    color: "text-orange-500",
+    bg: "bg-orange-500/10",
+  },
+];
 
 function SkeletonCard() {
   return <Card className="h-24 animate-pulse bg-muted/20 border-none" />;
@@ -74,51 +107,30 @@ export function AdminOverviewPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              label: "全站用户",
-              value: stats?.total_users || 0,
-              icon: Users,
-              color: "text-blue-500",
-            },
-            {
-              label: "微信账号",
-              value: stats?.total_bots || 0,
-              icon: Cpu,
-              color: "text-green-500",
-            },
-            {
-              label: "已安装应用",
-              value: stats?.total_installations || 0,
-              icon: Globe,
-              color: "text-purple-500",
-            },
-            {
-              label: "活跃 App",
-              value: stats?.total_apps || 0,
-              icon: Blocks,
-              color: "text-orange-500",
-            },
-          ].map((m, i) => (
-            <Card key={i} className="border-border/50 bg-card/50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  {m.label}
-                </CardTitle>
-                <m.icon className={`h-4 w-4 ${m.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-black">{m.value}</div>
+          {METRIC_CONFIG.map((m) => (
+            <Card
+              key={m.label}
+              className="border-border/50 bg-card/50 hover:bg-card transition-colors cursor-default"
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div
+                    className={`h-8 w-8 rounded-lg ${m.bg} flex items-center justify-center ${m.color}`}
+                  >
+                    <m.icon className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold tabular-nums">{stats?.[m.key] || 0}</div>
+                <p className="text-xs font-semibold text-foreground/80">{m.label}</p>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      <Card className="border-border/50 bg-card/30 rounded-[2rem]">
+      <Card className="border-border/50 bg-card/30">
         <CardHeader>
           <CardTitle>系统状态</CardTitle>
-          <CardDescription></CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
@@ -141,41 +153,38 @@ export function AdminOverviewPage() {
       </Card>
 
       <div className="grid gap-8 md:grid-cols-2">
-        <Card className="border-border/50 bg-card/50 rounded-[2rem]">
+        <Card className="border-border/50 bg-card/50">
           <CardHeader>
             <CardTitle>AI 配置</CardTitle>
             <CardDescription>所有账号的默认 AI 设置。</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-muted-foreground">接口地址</label>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">接口地址</Label>
               <Input
                 value={aiConfig?.base_url || ""}
                 onChange={(e) => setAIConfig({ ...aiConfig, base_url: e.target.value })}
-                className="rounded-xl h-10"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-muted-foreground">默认模型</label>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">默认模型</Label>
               <Input
                 value={aiConfig?.model || ""}
                 onChange={(e) => setAIConfig({ ...aiConfig, model: e.target.value })}
-                className="rounded-xl h-10"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase text-muted-foreground">API Key</label>
+              <Label className="text-xs font-bold uppercase text-muted-foreground">API Key</Label>
               <Input
                 type="password"
                 value={aiConfig?.api_key || ""}
                 onChange={(e) => setAIConfig({ ...aiConfig, api_key: e.target.value })}
-                className="rounded-xl h-10"
                 placeholder="••••••••"
               />
             </div>
           </CardContent>
-          <CardFooter className="bg-muted/30 pt-4 flex justify-end">
-            <Button onClick={handleSaveAI} disabled={saving} className="rounded-full">
+          <CardFooter className="flex justify-end">
+            <Button onClick={handleSaveAI} disabled={saving}>
               保存
             </Button>
           </CardFooter>
@@ -261,7 +270,7 @@ function RegistryConfigCard() {
   }
 
   return (
-    <Card className="border-border/50 bg-card/50 rounded-[2rem]">
+    <Card className="border-border/50 bg-card/50">
       <CardHeader>
         <CardTitle>Registry 配置</CardTitle>
         <CardDescription>管理应用市场 Registry 来源。</CardDescription>
@@ -309,15 +318,19 @@ function RegistryConfigCard() {
                   >
                     {reg.enabled ? "启用" : "禁用"}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs text-destructive"
-                    onClick={() => handleDeleteRegistry(reg)}
-                    aria-label="删除"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteRegistry(reg)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>删除</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             ))
@@ -334,19 +347,18 @@ function RegistryConfigCard() {
               placeholder="名称"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="rounded-xl h-9 flex-1"
+              className="flex-1"
             />
             <Input
               placeholder="URL"
               value={newUrl}
               onChange={(e) => setNewUrl(e.target.value)}
-              className="rounded-xl h-9 flex-[2]"
+              className="flex-[2]"
             />
             <Button
               size="sm"
               onClick={handleAddRegistry}
               disabled={adding || !newName.trim() || !newUrl.trim()}
-              className="h-9 rounded-xl"
             >
               <Plus className="w-3.5 h-3.5 mr-1" /> 添加
             </Button>

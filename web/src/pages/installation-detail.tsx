@@ -664,59 +664,55 @@ function EventLogsSection({ appId, instId }: { appId: string; instId: string }) 
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-8 w-full" />
+      <Card className="overflow-hidden">
+        {loading ? (
+          <div className="p-6 space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : logs.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8 px-4">暂无事件日志</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>时间</TableHead>
+                <TableHead>事件类型</TableHead>
+                <TableHead>Trace ID</TableHead>
+                <TableHead>状态码</TableHead>
+                <TableHead>耗时</TableHead>
+                <TableHead>错误</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {logs.map((log) => (
+                <TableRow key={log.id || log.trace_id + log.created_at}>
+                  <TableCell className="font-mono whitespace-nowrap">
+                    {formatTime(log.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">
+                      {log.event_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground">
+                    {log.trace_id ? log.trace_id.slice(0, 12) + "..." : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={log.status_code || log.status} />
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {log.duration_ms != null ? `${log.duration_ms}ms` : "-"}
+                  </TableCell>
+                  <TableCell className="text-destructive max-w-48 truncate">
+                    {log.error || "-"}
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          ) : logs.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">暂无事件日志</p>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>时间</TableHead>
-                    <TableHead>事件类型</TableHead>
-                    <TableHead>Trace ID</TableHead>
-                    <TableHead>状态码</TableHead>
-                    <TableHead>耗时</TableHead>
-                    <TableHead>错误</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id || log.trace_id + log.created_at}>
-                      <TableCell className="font-mono whitespace-nowrap">
-                        {formatTime(log.created_at)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono">
-                          {log.event_type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-muted-foreground">
-                        {log.trace_id ? log.trace_id.slice(0, 12) + "..." : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={log.status_code || log.status} />
-                      </TableCell>
-                      <TableCell className="font-mono">
-                        {log.duration_ms != null ? `${log.duration_ms}ms` : "-"}
-                      </TableCell>
-                      <TableCell className="text-destructive max-w-48 truncate">
-                        {log.error || "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
+            </TableBody>
+          </Table>
+        )}
       </Card>
     </div>
   );
@@ -774,55 +770,51 @@ function ApiLogsSection({ appId, instId }: { appId: string; instId: string }) {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-8 w-full" />
+      <Card className="overflow-hidden">
+        {loading ? (
+          <div className="p-6 space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : logs.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8 px-4">暂无 API 日志</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>时间</TableHead>
+                <TableHead>方法</TableHead>
+                <TableHead>路径</TableHead>
+                <TableHead>状态码</TableHead>
+                <TableHead>耗时</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {logs.map((log, idx) => (
+                <TableRow key={log.id || idx}>
+                  <TableCell className="font-mono whitespace-nowrap">
+                    {formatTime(log.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono font-bold">
+                      {log.method}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground max-w-64 truncate">
+                    {log.path}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={log.status_code || log.status} />
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {log.duration_ms != null ? `${log.duration_ms}ms` : "-"}
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          ) : logs.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">暂无 API 日志</p>
-          ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>时间</TableHead>
-                    <TableHead>方法</TableHead>
-                    <TableHead>路径</TableHead>
-                    <TableHead>状态码</TableHead>
-                    <TableHead>耗时</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log, idx) => (
-                    <TableRow key={log.id || idx}>
-                      <TableCell className="font-mono whitespace-nowrap">
-                        {formatTime(log.created_at)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono font-bold">
-                          {log.method}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-muted-foreground max-w-64 truncate">
-                        {log.path}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={log.status_code || log.status} />
-                      </TableCell>
-                      <TableCell className="font-mono">
-                        {log.duration_ms != null ? `${log.duration_ms}ms` : "-"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
+            </TableBody>
+          </Table>
+        )}
       </Card>
     </div>
   );

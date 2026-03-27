@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Users, MoreVertical, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -52,7 +51,7 @@ export function AdminUsersPage() {
         </div>
       </div>
 
-      <Card className="border-border/50 rounded-3xl overflow-hidden">
+      <div className="rounded-xl border border-border/50 overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
@@ -132,7 +131,7 @@ export function AdminUsersPage() {
                 ))}
           </TableBody>
         </Table>
-      </Card>
+      </div>
     </div>
   );
 }
