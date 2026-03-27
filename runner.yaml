@@ -1,0 +1,8 @@
+hub_url: https://hub.openilink.com
+app_token: app_e49071dd1a5bfcb7bebb996a90384eb7990f224251de6eded10b1a67a7f5b54c
+max_output: 2000
+commands:
+  weather:
+    exec: curl -s 'wttr.in/?format=3'
+    description: 查天气
+    timeout: 30
