@@ -91,16 +91,11 @@ export function AppsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
-            <Blocks className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">应用市场</h1>
-            <p className="text-muted-foreground">浏览和安装应用。</p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">应用市场</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">浏览和安装应用。</p>
         </div>
       </div>
 

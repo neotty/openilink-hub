@@ -144,7 +144,7 @@ export function BotDetailPage() {
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-black tracking-tighter">{bot.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{bot.name}</h1>
               <Badge
                 variant={bot.status === "connected" ? "default" : "destructive"}
                 className="rounded-full px-3 py-0.5 text-[10px] font-black uppercase tracking-widest"

@@ -160,7 +160,7 @@ export function InstallationDetailPage() {
           />
           <div className="flex-1 min-w-0 space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold">{inst.app_name || app.name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{inst.app_name || app.name}</h1>
               {inst.handle ? (
                 <span className="text-sm text-muted-foreground font-mono">@{inst.handle}</span>
               ) : null}

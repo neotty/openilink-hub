@@ -88,10 +88,10 @@ export function SettingsPage() {
     );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">账号设置</h1>
-        <p className="text-muted-foreground">管理您的个人资料、安全选项和偏好。</p>
+        <h1 className="text-2xl font-bold tracking-tight">账号设置</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">管理您的个人资料、安全选项和偏好。</p>
       </div>
 
       {oauthMsg ? (

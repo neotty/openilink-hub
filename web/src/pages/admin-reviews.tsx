@@ -25,14 +25,11 @@ export function AdminReviewsPage() {
   }, []);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm border border-primary/20">
-          <ClipboardCheck className="h-6 w-6" />
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">审核中心</h2>
-          <p className="text-muted-foreground">审核应用上架请求。</p>
+          <h1 className="text-2xl font-bold tracking-tight">审核中心</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">审核应用上架请求。</p>
         </div>
       </div>
 
@@ -50,14 +47,26 @@ export function AdminReviewsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {apps.map(a => (
+              {apps.map((a) => (
                 <TableRow key={a.id}>
                   <TableCell className="font-bold">{a.name}</TableCell>
                   <TableCell className="font-mono text-xs opacity-60">{a.slug}</TableCell>
                   <TableCell className="text-xs">{a.owner_username}</TableCell>
-                  <TableCell><Badge variant={a.listing === "listed" ? "default" : "secondary"}>{a.listing === "listed" ? "已上架" : "待上架"}</Badge></TableCell>
+                  <TableCell>
+                    <Badge variant={a.listing === "listed" ? "default" : "secondary"}>
+                      {a.listing === "listed" ? "已上架" : "待上架"}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={async () => { const newListing = a.listing === "listed" ? "unlisted" : "listed"; await api.setAppListing(a.id, newListing); loadApps(); }}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        const newListing = a.listing === "listed" ? "unlisted" : "listed";
+                        await api.setAppListing(a.id, newListing);
+                        loadApps();
+                      }}
+                    >
                       {a.listing === "listed" ? "下架" : "上架"}
                     </Button>
                   </TableCell>
@@ -67,7 +76,6 @@ export function AdminReviewsPage() {
           </Table>
         </Card>
       </div>
-
     </div>
   );
 }

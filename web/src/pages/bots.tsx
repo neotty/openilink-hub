@@ -102,14 +102,14 @@ export function BotsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-6">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">账号管理</h1>
-          <p className="text-muted-foreground">管理你的微信账号。</p>
+          <h1 className="text-2xl font-bold tracking-tight">账号管理</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">管理你的微信账号。</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={load} disabled={loading} className="h-10">
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> 刷新
           </Button>
           <Dialog
@@ -121,7 +121,7 @@ export function BotsPage() {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="h-10 px-6 shadow-lg shadow-primary/20">
+              <Button className="px-6 shadow-lg shadow-primary/20">
                 <Plus className="mr-2 h-4 w-4" /> 添加账号
               </Button>
             </DialogTrigger>
