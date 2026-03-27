@@ -1,30 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import QRCode from "qrcode";
 import { Button } from "../components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "../components/ui/card";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { 
-  Plus, 
-  Trash2, 
-  RefreshCw, 
-  Bot as BotIcon, 
-  MessageCircle, 
-  Clock, 
-  ExternalLink,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Bot as BotIcon,
+  MessageCircle,
+  Clock,
   Loader2,
   AlertCircle,
   MoreVertical,
-  Activity,
   ArrowUpRight,
-  ShieldCheck,
 } from "lucide-react";
 import { api } from "../lib/api";
 import {
@@ -57,7 +46,6 @@ export function BotsPage() {
   const [qrUrl, setQrUrl] = useState("");
   const [bindStatus, setBindStatus] = useState("");
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   async function load() {
     setLoading(true);
@@ -69,7 +57,9 @@ export function BotsPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   async function startBind() {
     setBinding(true);
@@ -79,20 +69,32 @@ export function BotsPage() {
       setQrUrl(qr_url);
       setBindStatus("请使用手机微信扫描上方二维码");
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const ws = new WebSocket(`${protocol}//${window.location.host}/api/bots/bind/status/${session_id}`);
+      const ws = new WebSocket(
+        `${protocol}//${window.location.host}/api/bots/bind/status/${session_id}`,
+      );
       ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
         if (data.event === "status") {
           if (data.status === "scanned") setBindStatus("已扫码，请在手机上点击确认...");
-          if (data.status === "refreshed") { setQrUrl(data.qr_url); setBindStatus("二维码已刷新"); }
+          if (data.status === "refreshed") {
+            setQrUrl(data.qr_url);
+            setBindStatus("二维码已刷新");
+          }
           if (data.status === "connected") {
             ws.close();
             setBinding(false);
-            navigate(data.is_new && data.bot_id ? `/dashboard/onboarding?bot_id=${data.bot_id}` : "/dashboard/accounts");
+            navigate(
+              data.is_new && data.bot_id
+                ? `/dashboard/onboarding?bot_id=${data.bot_id}`
+                : "/dashboard/accounts",
+            );
           }
         }
       };
-      ws.onerror = () => { setBindStatus("同步中断，请重试"); ws.close(); };
+      ws.onerror = () => {
+        setBindStatus("同步中断，请重试");
+        ws.close();
+      };
       ws.onclose = () => {};
     } catch (err: any) {
       setBindStatus("初始化失败: " + err.message);
@@ -103,14 +105,21 @@ export function BotsPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">账号管理</h2>
+          <h1 className="text-3xl font-bold tracking-tight">账号管理</h1>
           <p className="text-muted-foreground">管理你的微信账号。</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={load} disabled={loading} className="h-10">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> 刷新
           </Button>
-          <Dialog open={binding} onOpenChange={(o: boolean) => { setBinding(o); if(o) startBind(); else setQrUrl(""); }}>
+          <Dialog
+            open={binding}
+            onOpenChange={(o: boolean) => {
+              setBinding(o);
+              if (o) startBind();
+              else setQrUrl("");
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="h-10 px-6 shadow-lg shadow-primary/20">
                 <Plus className="mr-2 h-4 w-4" /> 添加账号
@@ -148,28 +157,40 @@ export function BotsPage() {
 
       {loading && bots.length === 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => <Card key={i} className="h-[220px] animate-pulse bg-muted/20" />)}
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="h-[220px] animate-pulse bg-muted/20" />
+          ))}
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {bots.map((bot) => (
-            <BotInstanceCard key={bot.id} bot={bot} onRefresh={load} onRebind={() => setBinding(true)} />
+            <BotInstanceCard
+              key={bot.id}
+              bot={bot}
+              onRefresh={load}
+              onRebind={() => setBinding(true)}
+            />
           ))}
-          
-          {bots.length === 0 && (
+
+          {bots.length === 0 ? (
             <div className="col-span-full py-24 border-2 border-dashed rounded-[2rem] flex flex-col items-center justify-center text-center bg-muted/5">
               <div className="h-20 w-20 rounded-3xl bg-background border shadow-sm flex items-center justify-center mb-6">
                 <BotIcon className="h-10 w-10 text-primary/40" />
               </div>
               <h3 className="text-xl font-bold">还没有账号</h3>
-              <p className="text-muted-foreground mt-2 max-w-sm">
-                添加你的第一个微信账号。
-              </p>
-              <Button variant="outline" className="mt-8 h-11 px-8 rounded-full" onClick={() => { setBinding(true); startBind(); }}>
+              <p className="text-muted-foreground mt-2 max-w-sm">添加你的第一个微信账号。</p>
+              <Button
+                variant="outline"
+                className="mt-8 h-11 px-8 rounded-full"
+                onClick={() => {
+                  setBinding(true);
+                  startBind();
+                }}
+              >
                 添加账号
               </Button>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -184,8 +205,15 @@ function QrCanvas({ url }: { url: string }) {
   return <canvas ref={ref} className="block rounded-lg" />;
 }
 
-function BotInstanceCard({ bot, onRefresh, onRebind }: { bot: any; onRefresh: () => void; onRebind: () => void }) {
-  const navigate = useNavigate();
+function BotInstanceCard({
+  bot,
+  onRefresh,
+  onRebind,
+}: {
+  bot: any;
+  onRefresh: () => void;
+  onRebind: () => void;
+}) {
   const { toast } = useToast();
   const status = statusConfig[bot.status] || statusConfig.disconnected;
 
@@ -207,8 +235,10 @@ function BotInstanceCard({ bot, onRefresh, onRebind }: { bot: any; onRefresh: ()
 
   return (
     <Card className="group relative overflow-hidden border-border/50 transition-all hover:shadow-2xl hover:border-primary/20 bg-card/50">
-      <div className={`absolute top-0 left-0 w-1 h-full ${status.variant === "default" ? "bg-primary" : "bg-destructive"}`} />
-      
+      <div
+        className={`absolute top-0 left-0 w-1 h-full ${status.variant === "default" ? "bg-primary" : "bg-destructive"}`}
+      />
+
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -218,24 +248,35 @@ function BotInstanceCard({ bot, onRefresh, onRebind }: { bot: any; onRefresh: ()
             <div className="space-y-0.5">
               <CardTitle className="text-lg font-bold">{bot.name}</CardTitle>
               <div className="flex items-center gap-2">
-                <span className={`size-1.5 rounded-full animate-pulse ${status.color.replace('text', 'bg')}`} />
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${status.color}`}>{status.label}</span>
+                <span
+                  className={`size-1.5 rounded-full animate-pulse ${status.color.replace("text", "bg")}`}
+                />
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
+                  {status.label}
+                </span>
               </div>
             </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40 rounded-xl">
-              {bot.status !== "session_expired" && (
+              {bot.status !== "session_expired" ? (
                 <DropdownMenuItem onClick={() => handleAction("reconnect")} className="gap-2">
                   <RefreshCw className="h-3.5 w-3.5" /> 重新连接
                 </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => handleAction("delete")} className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive">
+              ) : null}
+              <DropdownMenuItem
+                onClick={() => handleAction("delete")}
+                className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
+              >
                 <Trash2 className="h-3.5 w-3.5" /> 删除账号
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -246,22 +287,31 @@ function BotInstanceCard({ bot, onRefresh, onRebind }: { bot: any; onRefresh: ()
       <CardContent className="pb-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">消息数</p>
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+              消息数
+            </p>
             <div className="flex items-center gap-1.5">
               <MessageCircle className="h-3.5 w-3.5 text-primary/60" />
-              <span className="text-sm font-bold">{bot.msg_count || 0} <span className="text-[10px] font-normal opacity-60">MSGS</span></span>
+              <span className="text-sm font-bold">
+                {bot.msg_count || 0}{" "}
+                <span className="text-[10px] font-normal opacity-60">MSGS</span>
+              </span>
             </div>
           </div>
           <div className="space-y-1">
-            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">自动续期</p>
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+              自动续期
+            </p>
             <div className="flex items-center gap-1.5">
               <Clock className="h-3.5 w-3.5 text-orange-500/60" />
-              <span className="text-sm font-bold">{bot.reminder_hours ? `提前 ${24 - bot.reminder_hours}h` : "不提醒"}</span>
+              <span className="text-sm font-bold">
+                {bot.reminder_hours ? `提前 ${24 - bot.reminder_hours}h` : "不提醒"}
+              </span>
             </div>
           </div>
         </div>
-        
-        {bot.status === "session_expired" && (
+
+        {bot.status === "session_expired" ? (
           <div className="mt-4 space-y-2 rounded-xl bg-destructive/5 p-3 border border-destructive/10">
             <div className="flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
@@ -271,20 +321,30 @@ function BotInstanceCard({ bot, onRefresh, onRebind }: { bot: any; onRefresh: ()
             </div>
             <p className="text-[10px] text-muted-foreground pl-6">
               如果发送消息后仍无法恢复，请
-              <button type="button" className="underline text-destructive font-medium cursor-pointer" onClick={onRebind}>重新扫码绑定</button>
+              <Button
+                type="button"
+                variant="link"
+                size="xs"
+                className="px-0.5 h-auto underline text-destructive"
+                onClick={onRebind}
+              >
+                重新扫码绑定
+              </Button>
               。
             </p>
           </div>
-        )}
+        ) : null}
       </CardContent>
 
       <CardFooter className="bg-muted/30 pt-4 flex gap-2">
-        <Button 
-          className="flex-1 h-9 rounded-lg gap-2 font-bold text-xs" 
+        <Button
+          className="flex-1 h-9 rounded-lg gap-2 font-bold text-xs"
           variant="secondary"
-          onClick={() => navigate(`/dashboard/accounts/${bot.id}`)}
+          asChild
         >
-          查看详情 <ArrowUpRight className="h-3 w-3" />
+          <Link to={`/dashboard/accounts/${bot.id}`}>
+            查看详情 <ArrowUpRight className="h-3 w-3" />
+          </Link>
         </Button>
       </CardFooter>
     </Card>
