@@ -157,7 +157,7 @@ function LayoutHeader() {
             {breadcrumbs.length > 0 && <BreadcrumbSeparator className="opacity-30" />}
             {breadcrumbs.map((bc, i) => (
               <React.Fragment key={bc.path}>
-                {i > 0 && <BreadcrumbSeparator className="hidden md:block opacity-30" />}
+                {i > 0 && <BreadcrumbSeparator className="opacity-30" />}
                 <BreadcrumbItem>
                   {bc.isLast ? (
                     <BreadcrumbPage className="font-bold text-foreground">
