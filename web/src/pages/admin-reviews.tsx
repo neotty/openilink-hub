@@ -96,7 +96,7 @@ export function AdminReviewsPage() {
     } else {
       setReviews([]);
     }
-  }, [selected?.id]);
+  }, [selected?.id, loadReviews]);
 
   async function handleApprove(a: any) {
     setSubmitting(true);
@@ -169,10 +169,12 @@ export function AdminReviewsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="inline-flex h-9 items-center rounded-lg bg-muted p-1 text-muted-foreground">
+      <div role="tablist" className="inline-flex h-9 items-center rounded-lg bg-muted p-1 text-muted-foreground">
         {TABS.map(({ key, label }) => (
           <button
             key={key}
+            role="tab"
+            aria-selected={tab === key}
             onClick={() => { setTab(key); setSelected(null); }}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-sm font-medium transition-all ${
               tab === key
@@ -197,7 +199,7 @@ export function AdminReviewsPage() {
       {/* Main content */}
       <div className="flex flex-col md:flex-row gap-6 min-h-[calc(100vh-16rem)]">
         {/* Left: App Queue */}
-        <div className="md:w-72 shrink-0 space-y-1 overflow-y-auto">
+        <div className="md:w-72 shrink-0 space-y-1 overflow-y-auto max-h-[50vh] md:max-h-none">
           {loading ? (
             <div className="space-y-1">
               {[1, 2, 3].map((i) => (
@@ -220,6 +222,7 @@ export function AdminReviewsPage() {
               <button
                 key={a.id}
                 onClick={() => setSelected(a)}
+                aria-current={selected?.id === a.id ? "true" : undefined}
                 className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
                   selected?.id === a.id
                     ? "bg-primary/10 border border-primary/20"
@@ -352,7 +355,7 @@ export function AdminReviewsPage() {
                               <span className="text-muted-foreground font-mono">v{review.version}</span>
                             )}
                             {review.reason && (
-                              <span className="text-muted-foreground truncate">{review.reason}</span>
+                              <span className="text-muted-foreground truncate" title={review.reason}>{review.reason}</span>
                             )}
                           </div>
                         ))}
@@ -370,7 +373,7 @@ export function AdminReviewsPage() {
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3 space-y-4">
                     {/* Basic info */}
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                       <div>
                         <p className="text-xs text-muted-foreground">开发者</p>
                         <p className="font-medium">{selected.owner_name}</p>
@@ -442,14 +445,23 @@ export function AdminReviewsPage() {
                       <X className="h-4 w-4" /> 拒绝
                     </Button>
                   </div>
-                ) : (
+                ) : selected.listing === "listed" ? (
                   <Button
                     variant="outline"
                     className="w-full"
                     onClick={() => handleToggle(selected)}
                     disabled={submitting}
                   >
-                    {selected.listing === "listed" ? "下架" : "上架"}
+                    下架
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleApprove(selected)}
+                    disabled={submitting}
+                  >
+                    通过上架
                   </Button>
                 )}
               </div>
