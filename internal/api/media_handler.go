@@ -5,22 +5,14 @@ import (
 	"strings"
 
 	"github.com/openilink/openilink-hub/internal/auth"
+	"github.com/openilink/openilink-hub/internal/bot"
 )
 
-// GET /api/v1/channels/media?key=xxx&eqp=xxx&aes=xxx
-// Proxy: downloads from CDN via bot provider, decrypts and streams back.
-// Used when MinIO is not configured.
+// GET /api/v1/channels/media?eqp=xxx&aes=xxx
+// Legacy proxy: downloads from CDN via bot provider, decrypts and streams back.
+// Kept for backward compatibility with existing media URLs stored before local FS storage.
+// Auth: channel API key OR session cookie (any connected bot owned by user).
 func (s *Server) handleChannelMedia(w http.ResponseWriter, r *http.Request) {
-	ch, err := s.authenticateChannel(r)
-	if ch == nil {
-		if err != nil {
-			http.Error(w, "invalid key", http.StatusUnauthorized)
-		} else {
-			http.Error(w, "api key required", http.StatusUnauthorized)
-		}
-		return
-	}
-
 	eqp := r.URL.Query().Get("eqp")
 	aes := r.URL.Query().Get("aes")
 	if eqp == "" || aes == "" {
@@ -28,12 +20,38 @@ func (s *Server) handleChannelMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inst, ok := s.BotManager.GetInstance(ch.BotID)
-	if !ok {
-		http.Error(w, "bot not connected", http.StatusServiceUnavailable)
+	// Try channel API key auth first
+	if ch, _ := s.authenticateChannel(r); ch != nil {
+		inst, ok := s.BotManager.GetInstance(ch.BotID)
+		if !ok {
+			http.Error(w, "bot not connected", http.StatusServiceUnavailable)
+			return
+		}
+		s.serveChannelMedia(w, r, inst, eqp, aes)
 		return
 	}
 
+	// Try session cookie auth: find a connected bot owned by this user
+	if cookie, err := r.Cookie("session"); err == nil {
+		if uid, err := auth.ValidateSession(s.Store, cookie.Value); err == nil && uid != "" {
+			bots, _ := s.Store.ListBotsByUser(uid)
+			for _, b := range bots {
+				inst, ok := s.BotManager.GetInstance(b.ID)
+				if !ok {
+					continue
+				}
+				s.serveChannelMedia(w, r, inst, eqp, aes)
+				return
+			}
+			http.Error(w, "no connected bot", http.StatusServiceUnavailable)
+			return
+		}
+	}
+
+	http.Error(w, "unauthorized", http.StatusUnauthorized)
+}
+
+func (s *Server) serveChannelMedia(w http.ResponseWriter, r *http.Request, inst *bot.Instance, eqp, aes string) {
 	data, err := inst.Provider.DownloadMedia(r.Context(), eqp, aes)
 	if err != nil {
 		http.Error(w, "download failed", http.StatusBadGateway)
@@ -50,8 +68,8 @@ func (s *Server) handleChannelMedia(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /api/v1/media/{key...}
-// Proxy: serves files from MinIO through Hub's own domain.
-// Key format: media/{bot_id}/{msg_id}/{index}.ext
+// Serves files from storage (S3 or local filesystem) through Hub.
+// Key format: {bot_id}/{date}/{filename}
 //
 // Auth:
 //   - Session cookie: user must own the bot
@@ -68,7 +86,7 @@ func (s *Server) handleMediaProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract bot_id from key: {bot_id}/{msg_id}/{index}.ext
+	// Extract bot_id from key: {bot_id}/{date}/{filename}
 	parts := strings.SplitN(key, "/", 3)
 	if len(parts) < 2 {
 		http.Error(w, "invalid key", http.StatusBadRequest)
