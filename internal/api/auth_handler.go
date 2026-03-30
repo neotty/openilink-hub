@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/openilink/openilink-hub/internal/auth"
@@ -65,6 +66,38 @@ func (s *Server) handleUpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.Store.UpdateUserProfile(userID, req.DisplayName, req.Email); err != nil {
 		jsonError(w, "update failed", http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w)
+}
+
+func (s *Server) handleUpdateUsername(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	var req struct {
+		Username string `json:"username"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		jsonError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := store.ValidateUsername(req.Username); err != nil {
+		jsonError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	existing, err := s.Store.GetUserByUsername(req.Username)
+	if err == nil && existing.ID != userID {
+		jsonError(w, "username already taken", http.StatusConflict)
+		return
+	}
+
+	if err := s.Store.UpdateUserUsername(userID, req.Username); err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "unique") {
+			jsonError(w, "username already taken", http.StatusConflict)
+		} else {
+			jsonError(w, "update failed", http.StatusInternalServerError)
+		}
 		return
 	}
 	jsonOK(w)
