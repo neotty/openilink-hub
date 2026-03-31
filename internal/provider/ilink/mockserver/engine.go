@@ -34,6 +34,7 @@ type engineOptions struct {
 	latency       time.Duration
 	messageLoss   float64
 	sessionTTL    time.Duration
+	onSent        func(SentMessage)
 }
 
 // Option configures the Engine.
@@ -53,6 +54,10 @@ func WithMessageLoss(rate float64) Option { return func(o *engineOptions) { o.me
 
 // WithSessionTTL sets the TTL for QR sessions.
 func WithSessionTTL(d time.Duration) Option { return func(o *engineOptions) { o.sessionTTL = d } }
+
+// WithOnSent registers a callback invoked synchronously after every outbound
+// message is recorded. The callback must not block.
+func WithOnSent(fn func(SentMessage)) Option { return func(o *engineOptions) { o.onSent = fn } }
 
 // Engine is the in-memory mock iLink server. It simulates QR login, message
 // polling, sending, media upload/download, and typing indicators.

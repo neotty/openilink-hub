@@ -80,20 +80,27 @@ done:
 func (e *Engine) SendText(recipient, text, contextToken string) (string, error) {
 	clientID := fmt.Sprintf("sdk-%d-%s", e.clock.Now().UnixMilli(), randomHex(4))
 
-	e.mu.Lock()
-	e.sent = append(e.sent, SentMessage{
+	sm := SentMessage{
 		Recipient:    recipient,
 		Text:         text,
 		ContextToken: contextToken,
 		ClientID:     clientID,
 		Timestamp:    e.clock.Now().UnixMilli(),
-	})
+	}
+
+	e.mu.Lock()
+	e.sent = append(e.sent, sm)
+	onSent := e.opts.onSent
 	e.mu.Unlock()
 
 	// Notify sentCh non-blocking.
 	select {
 	case e.sentCh <- struct{}{}:
 	default:
+	}
+
+	if onSent != nil {
+		onSent(sm)
 	}
 
 	return clientID, nil
@@ -158,11 +165,16 @@ func (e *Engine) SendMessage(msg *ilink.WeixinMessage) error {
 
 	e.mu.Lock()
 	e.sent = append(e.sent, sm)
+	onSent := e.opts.onSent
 	e.mu.Unlock()
 
 	select {
 	case e.sentCh <- struct{}{}:
 	default:
+	}
+
+	if onSent != nil {
+		onSent(sm)
 	}
 
 	return nil
@@ -191,8 +203,7 @@ func (e *Engine) SendMediaFile(recipient, contextToken string, data []byte, file
 
 	clientID := fmt.Sprintf("sdk-%d-%s", e.clock.Now().UnixMilli(), randomHex(4))
 
-	e.mu.Lock()
-	e.sent = append(e.sent, SentMessage{
+	mediaSM := SentMessage{
 		Recipient:    recipient,
 		Text:         text,
 		ContextToken: contextToken,
@@ -200,12 +211,20 @@ func (e *Engine) SendMediaFile(recipient, contextToken string, data []byte, file
 		MediaData:    data,
 		FileName:     fileName,
 		Timestamp:    e.clock.Now().UnixMilli(),
-	})
+	}
+
+	e.mu.Lock()
+	e.sent = append(e.sent, mediaSM)
+	onSent := e.opts.onSent
 	e.mu.Unlock()
 
 	select {
 	case e.sentCh <- struct{}{}:
 	default:
+	}
+
+	if onSent != nil {
+		onSent(mediaSM)
 	}
 
 	return nil
